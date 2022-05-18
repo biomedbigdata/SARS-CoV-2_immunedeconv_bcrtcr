@@ -11,14 +11,13 @@ library(tidyr)
 library(immunedeconv)
 library(tibble)
 
-# read gene expression matrix and transform to a matrix with genes in rows and 
-# samples in columns
+# read gene expression matrix for counts and tpms from rds file
 
-PATH_TO_EXPRESSION_MAT <- "/nfs/data2/covid_hennighausen/covid_pbmcs_variants/02_nfcore_rnaseq_results/01_inc_cat/star_salmon/salmon.merged.transcript_tpm.tsv"
-expr_mat <- fread(PATH_TO_EXPRESSION_MAT)
+PATH_TO_DIR <- "/nfs/data2/covid_hennighausen/covid_pbmcs_variants/02_nfcore_rnaseq_results/01_inc_cat/star_salmon/"
 
-# remove first column (double the tx)
-# TODO: have a look at the files, which ID to use
-expr_mat <- expr_mat[, -c("V1")] 
-expr_mat <- as.matrix(expr_mat)
-expr_mat[1:6, 1:6]
+rds_obj <- readRDS(paste0(PATH_TO_DIR, 'salmon.merged.gene_counts.rds'))
+counts <- assays(rds_obj)$counts
+tpms <- assays(rds_obj)$abundance
+
+source("CIBERSORT.R")
+immunedeconv::deconvolute(counts, "quantiseq")
