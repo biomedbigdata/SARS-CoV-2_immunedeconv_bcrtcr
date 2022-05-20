@@ -58,13 +58,26 @@ save(tpms, file = 'data/variants_tpms_gene_names.RData')
 load(file = "data/variants_tpms_gene_names.RData") # load file
 head(tpms)
 
+methods = list("quantiseq", # "cibersort",
+            "cibersort_abs",
+            "xcell",
+            "epic"#, "abis",
+            # "timer", "mpc_counter"
+            )
+
 ## perform deconvolution
+set_cibersort_binary("CIBERSORT.R") # make sure cibersort is known
+set_cibersort_mat("LM22.txt")
+deconv_results <- lapply(methods, function(x) deconvolute(tpms, x))
+
+
+## perform each method alone
 # quantiseq
 quantiseq_result <- immunedeconv::deconvolute(tpms, "quantiseq")
 
 # timer
 # "TIMER uses indication-specific reference profiles. Therefore, you must specify the tumor type when running TIMER" (https://omnideconv.org/immunedeconv/articles/immunedeconv.html)
-# timer_result <- immunedeconv::deconvolute(tpms, "timer")
+timer_result <- immunedeconv::deconvolute(tpms, "timer", rep("cntl", ncol(tpms))) # CNTL for "Control" ?????????
 
 # cibersort
 set_cibersort_binary("CIBERSORT.R")
@@ -88,46 +101,12 @@ abis_result <- immunedeconv::deconvolute(tpms, "abis")
 
 # consensus_tme
 # needs indications
-# consensus_result <- immunedeconv::deconvolute(tpms, "consensus_tme") # error
+consensus_result <- immunedeconv::deconvolute(tpms, "consensus_tme", rep("Unfiltered", ncol(tpms))) # error
+
 
 
 ################################################################################
 ### VISUALISATION
-quantiseq_dt <- as.data.table(quantiseq_result)[, method := 'quantiseq']
-cibersort_dt <- as.data.table(cibersort_result)[, method := 'cibersort']
-cibersort_abs_dt <- as.data.table(cibersort_abs_result)[, method := 'cibersort_abs']
-epic_dt <- as.data.table(epic_result)[, method := 'epic']
-xcell_dt <- as.data.table(xcell_result)[, method := 'xcell']
-abis_dt <- as.data.table(abis_result)[, method := 'abis']
-
-
-result_dt <- rbindlist(list(quantiseq_dt, 
-                            cibersort_dt, 
-                            cibersort_abs_dt, 
-                            epic_dt, 
-                            xcell_dt,
-                            abis_dt
-                            ))
-
-result_dt_melt <- melt(result_dt, id.vars = c("cell_type", "method"), variable.name = "sample")
-
-
-mean_dt <- result_dt_melt[, .(mean_per_type = mean(value)), by = c("cell_type", "method")]
-
-## ggplot approach
-# ggplot(mean_dt, aes(x = "", y = mean_per_type, fill = cell_type)) +
-#   geom_col(width=1) + coord_polar("y", start=0) + facet_wrap(~method)
-
-mean_dt[, mean_per_type := ifelse(mean_per_type < 0, 0, mean_per_type)]
-
-# par(mfrow=c(3,2))
-# par(mfrow=c(1,1))
-pie(mean_dt[method == "quantiseq"]$mean_per_type, labels = mean_dt[method == "quantiseq"]$cell_type) 
-pie(mean_dt[method == "cibersort"]$mean_per_type, labels = mean_dt[method == "cibersort"]$cell_type)
-pie(mean_dt[method == "cibersort_abs"]$mean_per_type, labels = mean_dt[method == "cibersort_abs"]$cell_type)
-pie(mean_dt[method == "epic"]$mean_per_type, labels = mean_dt[method == "epic"]$cell_type)
-pie(mean_dt[method == "xcell"]$mean_per_type, labels = mean_dt[method == "xcell"]$cell_type)
-pie(mean_dt[method == "abis"]$mean_per_type, labels = mean_dt[method == "abis"]$cell_type)
 
 
 # TODO: 
@@ -137,6 +116,42 @@ pie(mean_dt[method == "abis"]$mean_per_type, labels = mean_dt[method == "abis"]$
 
 
 
+### try visualization as in https://omnideconv.org/immunedeconv/articles/detailed_example.html
+deconv_results[[1]] %>%
+  gather(sample, fraction, -cell_type) %>%
+  # plot as stacked bar chart
+  ggplot(aes(x=sample, y=fraction, fill=cell_type)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  scale_fill_brewer(palette="Paired") +
+  scale_x_discrete(limits = rev(levels(deconv_results[[1]])))
+
+xcell_result_dt <- as.data.table(xcell_result)
+xcell_result_dt[cell_type %in% c("B cell", "B cell memory", "B cell naive", "T cell CD8+", "T cell CD4+ memory", "T cell CD4+ naive")] %>%
+  gather(sample, score, -cell_type) %>%
+  ggplot(aes(x=sample, y=score, color=cell_type)) +
+  geom_point(size=4) +
+  facet_wrap(~cell_type, scales="free_x", ncol=3) +
+  scale_color_brewer(palette="Paired", guide=FALSE) +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+## create list of barplots for each result -> not meaningful because results are different
+# bar_plots <- lapply(deconv_results, function(x){
+#   x %>%
+#     gather(sample, fraction, -cell_type) %>%
+#     # plot as stacked bar chart
+#     ggplot(aes(x=sample, y=fraction, fill=cell_type)) +
+#     geom_bar(stat='identity') +
+#     coord_flip() +
+#     scale_x_discrete(limits = rev(levels(x)))#  +
+#     # scale_fill_brewer(palette="Paired")
+# })
+# 
+# 
+bar_plots
 
 
 
@@ -153,3 +168,44 @@ pie_charts <- lapply(methods, function(x){
 })
 plot <- function(x){pie_chart(x)}
 plot("quantiseq")
+
+
+
+
+
+# first visualisation approach
+quantiseq_dt <- as.data.table(quantiseq_result)[, method := 'quantiseq']
+cibersort_dt <- as.data.table(cibersort_result)[, method := 'cibersort']
+cibersort_abs_dt <- as.data.table(cibersort_abs_result)[, method := 'cibersort_abs']
+epic_dt <- as.data.table(epic_result)[, method := 'epic']
+xcell_dt <- as.data.table(xcell_result)[, method := 'xcell']
+abis_dt <- as.data.table(abis_result)[, method := 'abis']
+
+
+result_dt <- rbindlist(list(quantiseq_dt, 
+                            cibersort_dt, 
+                            cibersort_abs_dt, 
+                            epic_dt, 
+                            xcell_dt,
+                            abis_dt
+))
+
+result_dt_melt <- melt(result_dt, id.vars = c("cell_type", "method"), variable.name = "sample")
+
+# average over samples (not useful in our purpose)
+mean_dt <- result_dt_melt[, .(mean_per_type = mean(value)), by = c("cell_type", "method")]
+
+## ggplot approach
+# ggplot(mean_dt, aes(x = "", y = mean_per_type, fill = cell_type)) +
+#   geom_col(width=1) + coord_polar("y", start=0) + facet_wrap(~method)
+
+mean_dt[, mean_per_type := ifelse(mean_per_type < 0, 0, mean_per_type)]
+
+# par(mfrow=c(3,2))
+# par(mfrow=c(1,1))
+pie(mean_dt[method == "quantiseq"]$mean_per_type, labels = mean_dt[method == "quantiseq"]$cell_type) 
+pie(mean_dt[method == "cibersort"]$mean_per_type, labels = mean_dt[method == "cibersort"]$cell_type)
+pie(mean_dt[method == "cibersort_abs"]$mean_per_type, labels = mean_dt[method == "cibersort_abs"]$cell_type)
+pie(mean_dt[method == "epic"]$mean_per_type, labels = mean_dt[method == "epic"]$cell_type)
+pie(mean_dt[method == "xcell"]$mean_per_type, labels = mean_dt[method == "xcell"]$cell_type)
+pie(mean_dt[method == "abis"]$mean_per_type, labels = mean_dt[method == "abis"]$cell_type)
