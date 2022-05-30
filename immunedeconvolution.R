@@ -105,14 +105,13 @@ if (!exists("tpms")){
 
 # load meta data about samples
 if (!exists("full_metadata")){
-  full_metadata <- fread("data/full_pbmc_metadata.csv")
-  colnames(full_metadata) <- unlist(full_metadata[1,])
-  full_metadata <- full_metadata[2:nrow(full_metadata)]
-  full_metadata <- full_metadata[, -1]
-  full_metadata <- as.data.table(full_metadata)
+  full_metadata <- fread("data/full_pbmc_metadata_original.csv")
 }
 
 create_score_plots("xcell", "plots/xcell_plots/")
+# configurations for cibersort
+set_cibersort_binary("CIBERSORT.R")
+set_cibersort_mat("LM22.txt")
 create_score_plots("cibersort_abs", "plots/cibersort_abs_plots/")
 mpc_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms)
 create_score_plots("mpc_counter", "plots/mpc_counter_plots/")

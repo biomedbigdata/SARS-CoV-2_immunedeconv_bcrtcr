@@ -25,6 +25,14 @@ create_result_table <- function(method){
     result_dt[, cell_type := cell_types]
   }
   
+  # make long data table
+  result_dt <- as.data.table(gather(result_dt, sample, score, -c(cell_type)))
+  
+  
+  # merge result_dt with the meta data containing info about groups
+  result_dt <- merge(result_dt, full_metadata[, .(old_id, group)],
+                     by.x = "sample", by.y = "old_id", all.x = T, allow.cartesian = T)
+  
   return(result_dt)
 }
 
