@@ -64,10 +64,8 @@ methods = list("quantiseq",
             "epic" #, "mpc_counter"
             )
 
-## perform deconvolution
-set_cibersort_binary("CIBERSORT.R") # make sure cibersort is known
-set_cibersort_mat("LM22.txt")
 
+## perform deconvolution
 # deconv_results <- lapply(methods, function(x) deconvolute(tpms, x))
 
 
@@ -76,8 +74,8 @@ set_cibersort_mat("LM22.txt")
 quantiseq_result <- immunedeconv::deconvolute(tpms, "quantiseq")
 
 # set configurations for cibersort
-set_cibersort_binary("CIBERSORT.R")
-set_cibersort_mat("LM22.txt")
+set_cibersort_binary("cibersort/CIBERSORT.R")
+set_cibersort_mat("cibersort/LM22.txt")
 
 # cibersort_abs
 cibersort_abs_result <- immunedeconv::deconvolute(tpms, "cibersort_abs")
@@ -110,8 +108,8 @@ if (!exists("full_metadata")){
 
 create_score_plots("xcell", "plots/xcell_plots/")
 # configurations for cibersort
-set_cibersort_binary("CIBERSORT.R")
-set_cibersort_mat("LM22.txt")
+set_cibersort_binary("cibersort/CIBERSORT.R")
+set_cibersort_mat("cibersort/LM22.txt")
 create_score_plots("cibersort_abs", "plots/cibersort_abs_plots/")
 mpc_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms)
 create_score_plots("mpc_counter", "plots/mpc_counter_plots/")
@@ -125,38 +123,4 @@ create_fraction_plot("epic", "plots/")
 #   - add info about variants
 #   - smarter way of plotting?
 #   - benchmarking pipeline
-
-
-
-
-## old?
-
-mpc_cell_types <- rownames(mpc_counter_result)
-mpc_counter_result_dt <- as.data.table(mpc_counter_result)
-mpc_counter_result_dt[, cell_type := mpc_cell_types]
-
-### try visualization as in https://omnideconv.org/immunedeconv/articles/detailed_example.html
-quantiseq_result %>%
-  gather(sample, fraction, -cell_type) %>%
-  # plot as stacked bar chart
-  ggplot(aes(x=sample, y=fraction, fill=cell_type)) +
-  geom_bar(stat='identity') +
-  coord_flip() +
-  scale_fill_brewer(palette="Paired") +
-  scale_x_discrete(limits = rev(levels(quantiseq_result)))
-
-xcell_result_dt <- as.data.table(xcell_result)
-xcell_result_dt[cell_type %in% c("B cell", "B cell memory", "B cell naive", "T cell CD8+", "T cell CD4+ memory", "T cell CD4+ naive")] %>%
-  gather(sample, score, -cell_type) %>%
-  ggplot(aes(x=sample, y=score, color=cell_type)) +
-  geom_point(size=4) +
-  facet_wrap(~cell_type, scales="free_x", ncol=3) +
-  scale_color_brewer(palette="Paired", guide=FALSE) +
-  coord_flip() +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-
-
-
 
