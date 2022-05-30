@@ -1,15 +1,10 @@
-## script for creating plots from deconvolution result with scores (not fractions)
+## script for creating plots from deconvolution result with scores and fractions
 # computes the desired result if not already computed
 # creates a plot for every cell type and saves them in the specified dir
 
 library(immunedeconv)
 library(ggplot2)
 library(data.table)
-
-# load data if not already loaded into work space
-if (!exists("tpms")){
-  load(file = "data/variants_tpms_gene_names.RData") # load file
-}
 
 
 create_result_table <- function(method){
@@ -43,12 +38,16 @@ create_score_plots <- function(method, dir){
   
   # generate plot for every cell type, save to xcell_plots/<cell type>.png
   for (ct in result_dt$cell_type){
+    # generate plot data table
+    plot_dt <- result_dt[cell_type == ct] %>%
+      gather(sample, score, -cell_type)
+    plot_dt <- as.data.table(plot_dt)
+    plot_dt <- plot_dt[, group := full_metadata[sample==sample_id]$group]
+    
     # generate plot
-    p <- result_dt[cell_type == ct] %>%
-      gather(sample, score, -cell_type) %>%
-      ggplot(aes(x=sample, y=score, color=cell_type)) +
-      geom_point(size=4) +
-      facet_wrap(~cell_type, scales="free_x", ncol=3) +
+    p <- ggplot(plot_dt) +
+      geom_point(aes(x=sample, y=score, color=cell_type), size=4) +
+      # facet_wrap(~cell_type, scales="free_x", ncol=3) +
       scale_color_brewer(palette="Paired", guide=FALSE) +
       coord_flip() +
       theme_bw() +
@@ -69,11 +68,18 @@ create_fraction_plot <- function(method, dir){
   
   result_dt <- create_result_table(method)
   
-  p <- result_dt %>%
-    gather(sample, fraction, -cell_type) %>%
-    # plot as stacked bar chart
-    ggplot(aes(x=sample, y=fraction, fill=cell_type)) +
-    geom_bar(stat='identity') +
+  # generate plot data table
+  plot_dt <- result_dt %>%
+    gather(sample, fraction, -cell_type)
+  
+  # print(head(plot_dt))
+  plot_dt <- merge(as.data.table(plot_dt), full_metadata[, .(sample_id, group)], by.x="sample", by.y="sample_id", all.x=T)
+  # plot_dt <- plot_dt[, group := full_metadata[sample_id==sample]$group]
+  print(plot_dt)
+  
+  # plot as stacked bar chart
+  p <- ggplot(plot_dt) +
+    geom_bar(aes(x=sample, y=fraction, fill=cell_type), stat='identity') +
     coord_flip() +
     scale_fill_brewer(palette="Paired") +
     scale_x_discrete(limits = rev(levels(result_dt)))

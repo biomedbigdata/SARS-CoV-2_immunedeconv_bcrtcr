@@ -98,9 +98,24 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic")
 
 source('plotting.R') # script and method for visualization of deconvolution results with absolute scores
 
+# load data if not already loaded into work space
+if (!exists("tpms")){
+  load(file = "data/variants_tpms_gene_names.RData") # load file
+}
+
+# load meta data about samples
+if (!exists("full_metadata")){
+  full_metadata <- fread("data/full_pbmc_metadata.csv")
+  colnames(full_metadata) <- unlist(full_metadata[1,])
+  full_metadata <- full_metadata[2:nrow(full_metadata)]
+  full_metadata <- full_metadata[, -1]
+  full_metadata <- as.data.table(full_metadata)
+}
+
 create_score_plots("xcell", "plots/xcell_plots/")
-create_score_plots("mpc_counter", "plots/mpc_counter_plots/")
 create_score_plots("cibersort_abs", "plots/cibersort_abs_plots/")
+mpc_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms)
+create_score_plots("mpc_counter", "plots/mpc_counter_plots/")
 
 create_fraction_plot("quantiseq", "plots/")
 create_fraction_plot("epic", "plots/")
