@@ -10,6 +10,7 @@ library(ggplot2)
 library(tidyr)
 library(immunedeconv)
 library(tibble)
+library(patchwork)
 
 
 ### transform tpms to correct input matrix with HGNC symbols as row names and sample names as column names
@@ -93,7 +94,9 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic")
 
 ################################################################################
 ### VISUALISATION
-
+# configurations for cibersort
+set_cibersort_binary("cibersort/CIBERSORT.R")
+set_cibersort_mat("cibersort/LM22.txt")
 source('plotting.R') # script and method for visualization of deconvolution results with absolute scores
 
 # load data if not already loaded into work space
@@ -107,11 +110,7 @@ if (!exists("full_metadata")){
 }
 
 create_score_plots("xcell", "plots/xcell_plots/")
-# configurations for cibersort
-set_cibersort_binary("cibersort/CIBERSORT.R")
-set_cibersort_mat("cibersort/LM22.txt")
 create_score_plots("cibersort_abs", "plots/cibersort_abs_plots/")
-mpc_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms)
 create_score_plots("mpc_counter", "plots/mpc_counter_plots/")
 
 create_fraction_plot("quantiseq", "plots/")
