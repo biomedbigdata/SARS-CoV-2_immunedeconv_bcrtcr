@@ -62,7 +62,7 @@ head(tpms)
 methods = list("quantiseq",
             "cibersort_abs",
             "xcell",
-            "epic" #, "mpc_counter"
+            "epic" #, "mcp_counter"
             )
 
 
@@ -81,8 +81,8 @@ set_cibersort_mat("cibersort/LM22.txt")
 # cibersort_abs
 cibersort_abs_result <- immunedeconv::deconvolute(tpms, "cibersort_abs")
 
-# mpc_counter
-mpc_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms) # somehow works only this way
+# mcp_counter
+mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms) # somehow works only this way
 
 # xcell
 xcell_result <- immunedeconv::deconvolute(tpms, "xcell")
@@ -111,7 +111,7 @@ if (!exists("full_metadata")){
 
 create_score_plots("xcell", "plots/xcell_plots/")
 create_score_plots("cibersort_abs", "plots/cibersort_abs_plots/")
-create_score_plots("mpc_counter", "plots/mpc_counter_plots/")
+create_score_plots("mcp_counter", "plots/mcp_counter_plots/")
 
 create_fraction_plot("quantiseq", "plots/")
 create_fraction_plot("epic", "plots/")

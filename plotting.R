@@ -11,7 +11,7 @@ create_result_table <- function(method){
   # check if results were already computed, otherwise compute
   if (!exists(paste0(method, "_result"))){
     print(paste0(method, "_result is computed"))
-    if (method == "mpc_counter"){
+    if (method == "mcp_counter"){
       result <- immunedeconv::deconvolute_mcp_counter(tpms)
     } else{
       result <- immunedeconv::deconvolute(tpms, method)
@@ -59,7 +59,8 @@ create_score_plots <- function(method, dir){
       scale_color_brewer(palette="Paired") +
       coord_flip() +
       theme_bw() +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+      labs(title = paste0(method, " scores for ", ct))
     
     # create filename
     cell_type <- gsub("\\+", "", ct) # remove "+" from cell type if necessary
@@ -87,7 +88,8 @@ create_fraction_plot <- function(method, dir){
     coord_flip() +
     # facet_wrap(~group, scales = "free") +
     scale_fill_brewer(palette="Paired") +
-    scale_x_discrete(limits = rev(levels(result_dt)))
+    scale_x_discrete(limits = rev(levels(result_dt))) +
+    labs(title = paste0("cell type fractions for each sample computed with ", method))
 
 
   # create filename
