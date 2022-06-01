@@ -14,7 +14,7 @@ create_result_table <- function(method){
     if (method == "mcp_counter"){
       result <- immunedeconv::deconvolute_mcp_counter(tpms)
     } else{
-      result <- immunedeconv::deconvolute(tpms, method)
+      result <- immunedeconv::deconvolute(tpms, method, tumor = FALSE)
     }
     assign(paste0(method, "_result"), result)
   } else {

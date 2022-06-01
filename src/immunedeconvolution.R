@@ -49,14 +49,14 @@ tpms <- tpms[!duplicated(mapped_names),]
 rownames(tpms) <- mapped_names[!duplicated(mapped_names)]
 
 # save tpms as rdata object for easy access
-save(tpms, file = 'data/variants_tpms_gene_names.RData')
+save(tpms, file = '../data/variants_tpms_gene_names.RData')
 
 
 ################################################################################
 ### start here if tpm matrix is already a matrix with genes in rows and samples in columns
 ### with HGNC symbols as row names and samples as column names
 
-load(file = "data/variants_tpms_gene_names.RData") # load file
+load(file = "../data/variants_tpms_gene_names.RData") # load file
 head(tpms)
 
 methods = list("quantiseq",
@@ -72,7 +72,7 @@ methods = list("quantiseq",
 
 ## perform each method alone
 # quantiseq
-quantiseq_result <- immunedeconv::deconvolute(tpms, "quantiseq")
+quantiseq_result <- immunedeconv::deconvolute(tpms, "quantiseq", tumor = FALSE)
 
 # set configurations for cibersort
 set_cibersort_binary("cibersort/CIBERSORT.R")
@@ -88,7 +88,7 @@ mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms) # somehow work
 xcell_result <- immunedeconv::deconvolute(tpms, "xcell")
 
 # epic
-epic_result <- immunedeconv::deconvolute(tpms, "epic")
+epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 
 
 
@@ -118,8 +118,8 @@ create_fraction_plot("epic", "plots/")
 
 
 
+
 # TODO: 
-#   - add info about variants
-#   - smarter way of plotting?
+#   - add color bar annotation to fraction plots
 #   - benchmarking pipeline
 
