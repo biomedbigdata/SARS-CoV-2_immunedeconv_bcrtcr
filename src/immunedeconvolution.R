@@ -97,7 +97,7 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 # configurations for cibersort
 set_cibersort_binary("cibersort/CIBERSORT.R")
 set_cibersort_mat("cibersort/LM22.txt")
-source('plotting.R') # script and method for visualization of deconvolution results with absolute scores
+source('src/plotting.R') # script and method for visualization of deconvolution results with absolute scores
 
 # load data if not already loaded into work space
 if (!exists("tpms")){
@@ -116,6 +116,7 @@ create_score_plots("mcp_counter", "plots/mcp_counter_plots/")
 create_fraction_plot("quantiseq", "plots/")
 create_fraction_plot("epic", "plots/")
 
+create_fraction_hm("epic", "plots/")
 
 
 

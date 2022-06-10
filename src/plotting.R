@@ -5,9 +5,10 @@
 library(immunedeconv)
 library(ggplot2)
 library(data.table)
+library(pheatmap)
 
 
-create_result_table <- function(method){
+get_result_table <- function(method){
   # check if results were already computed, otherwise compute
   if (!exists(paste0(method, "_result"))){
     print(paste0(method, "_result is computed"))
@@ -29,15 +30,37 @@ create_result_table <- function(method){
     result_dt[, cell_type := cell_types]
   }
   
-  # make long data table
-  result_dt <- as.data.table(gather(result_dt, sample, score, -c(cell_type)))
+  return(result_dt)
+}
+
+# function to create the desired data table format (long/dt or wide/matrix)
+create_result_table <- function(method, as_matrix = F, exclude_beta = F, exclude_gamma = F){
+  # create the result and get the matrix (cell_type x sample)
+  result_dt <- get_result_table(method)
   
+  # make long data table
+  result_dt_long <- as.data.table(gather(result_dt, sample, score, -c(cell_type)))
   
   # merge result_dt with the meta data containing info about groups
-  result_dt <- merge(result_dt, full_metadata[, .(old_id, group)],
-                     by.x = "sample", by.y = "old_id", all.x = T, allow.cartesian = T)
+  result_dt_long <- merge(result_dt_long, full_metadata[, .(old_id, group)],
+                          by.x = "sample", by.y = "old_id", all.x = T, allow.cartesian = T)
   
-  return(result_dt[order(group)])
+  if (exclude_beta) {
+    result_dt_long <- result_dt_long[group != "Beta"]
+  }
+  if (exclude_gamma) {
+    result_dt_long <- result_dt_long[group != "Gamma"]
+  }
+  
+  # return matrix if data should be in format matrix instead of long data table
+  if (as_matrix){
+    # convert back to wide format but sample x cell_type
+    result_dt_wide <- dcast(result_dt_long, 
+                            ... ~ cell_type, value.var = 'score')
+    return(result_dt_wide)
+  } 
+  # else return the long format
+  return(result_dt_long[order(group)])
 }
 
 
@@ -71,6 +94,7 @@ create_score_plots <- function(method, dir){
 
 }
 
+
 # function to create and save bar plot from deconvolution method that returns fractions
 create_fraction_plot <- function(method, dir){
   # create a new dir for result plots if it does not exist yet
@@ -99,5 +123,36 @@ create_fraction_plot <- function(method, dir){
 }
 
 
+create_fraction_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
+  # create a new dir for result plots if it does not exist yet
+  dir.create(file.path(dir))
+  
+  result_dt <- create_result_table(method, as_matrix = TRUE, exclude_beta = exclude_beta, exclude_gamma = exclude_gamma)
+  
+  # generate data table for the annotation
+  annotation_dt <- result_dt[, .(group)]
+  rownames(annotation_dt) <- result_dt$sample
+  ann_colors = list(brewer.pal(n = length(unique(annotation_dt$group)), name = "Dark2"))
+  
+  # generate plot data table
+  plot_mat <- as.matrix(result_dt[, -c("sample", "group")])
+  rownames(plot_mat) <- result_dt$sample
+  class(plot_mat) <- "numeric"
+  
 
+  # filename for saving the heatmap
+  filename <- paste0(gsub(" ", "_", method), "_hm.png") # paste filename from cell type
+  
+  
+  # plot as hm
+  pheatmap(plot_mat, annotation_row = annotation_dt,
+           cluster_cols = FALSE, 
+           color = brewer.pal(n = 9, name = "GnBu"),
+           annotation_colors = ann_colors,
+           border_color = NA,
+           fontsize_row = 8, 
+           main = paste0("cell type fractions for each sample computed with ", method),
+           filename = paste0(dir, filename), width = ncol(plot_mat), height = nrow(plot_mat)/9)
+  
+}
 
