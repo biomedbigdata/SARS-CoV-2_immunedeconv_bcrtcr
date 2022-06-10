@@ -11,6 +11,7 @@ library(tidyr)
 library(immunedeconv)
 library(tibble)
 library(patchwork)
+library(RColorBrewer)
 
 
 ### transform tpms to correct input matrix with HGNC symbols as row names and sample names as column names
@@ -95,8 +96,8 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 ################################################################################
 ### VISUALISATION
 # configurations for cibersort
-set_cibersort_binary("cibersort/CIBERSORT.R")
-set_cibersort_mat("cibersort/LM22.txt")
+set_cibersort_binary("src/cibersort/CIBERSORT.R")
+set_cibersort_mat("src/cibersort/LM22.txt")
 source('src/plotting.R') # script and method for visualization of deconvolution results with absolute scores
 
 # load data if not already loaded into work space
@@ -116,7 +117,8 @@ create_score_plots("mcp_counter", "plots/mcp_counter_plots/")
 create_fraction_plot("quantiseq", "plots/")
 create_fraction_plot("epic", "plots/")
 
-create_fraction_hm("epic", "plots/")
+create_hm("epic", "plots/")
+create_hm("xcell", "plots/")
 
 
 

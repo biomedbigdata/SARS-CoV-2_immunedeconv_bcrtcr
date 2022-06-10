@@ -17,7 +17,7 @@ get_result_table <- function(method){
     } else{
       result <- immunedeconv::deconvolute(tpms, method, tumor = FALSE)
     }
-    assign(paste0(method, "_result"), result)
+    assign(paste0(method, "_result"), result, env=.GlobalEnv)
   } else {
     print(paste0(method, "_result is loaded from work space"))
     result <- get(paste0(method, "_result"))
@@ -85,11 +85,12 @@ create_score_plots <- function(method, dir){
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
       labs(title = paste0(method, " scores for ", ct))
     
+    num_samples <- length(unique(plot_dt$sample)) # for plot size
     # create filename
     cell_type <- gsub("\\+", "", ct) # remove "+" from cell type if necessary
     filename <- paste0(gsub(" ", "_", cell_type), ".png") # paste filename from cell type
     # save plot
-    ggsave(filename, plot=p, path=dir, height=40, width=20, units="cm")
+    ggsave(filename, plot=p, path=dir, height=num_samples/3.5, width=num_samples/6, units="cm")
   }
 
 }
@@ -115,15 +116,15 @@ create_fraction_plot <- function(method, dir){
     scale_x_discrete(limits = rev(levels(result_dt))) +
     labs(title = paste0("cell type fractions for each sample computed with ", method))
 
-
+  num_samples <- length(unique(plot_dt$sample)) # for plot size
   # create filename
   filename <- paste0(gsub(" ", "_", method), ".png") # paste filename from cell type
   # save plot
-  ggsave(filename, plot=p, path=dir, height=40, width=30, units="cm")
+  ggsave(filename, plot=p, path=dir, height=num_samples/3.5, width=num_samples/4.5, units="cm")
 }
 
 
-create_fraction_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
+create_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
   
@@ -152,7 +153,6 @@ create_fraction_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F)
            border_color = NA,
            fontsize_row = 8, 
            main = paste0("cell type fractions for each sample computed with ", method),
-           filename = paste0(dir, filename), width = ncol(plot_mat), height = nrow(plot_mat)/9)
-  
+           filename = paste0(dir, filename), width = ifelse(ncol(plot_mat)<15, ncol(plot_mat), ncol(plot_mat)/3), height = nrow(plot_mat)/8)
 }
 
