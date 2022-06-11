@@ -144,7 +144,7 @@ create_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
   # filename for saving the heatmap
   filename <- paste0(gsub(" ", "_", method), "_hm.png") # paste filename from cell type
   
-  
+  type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
   # plot as hm
   pheatmap(plot_mat, annotation_row = annotation_dt,
            cluster_cols = FALSE, 
@@ -152,7 +152,7 @@ create_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
            annotation_colors = ann_colors,
            border_color = NA,
            fontsize_row = 8, 
-           main = paste0("cell type fractions for each sample computed with ", method),
+           main = paste0("cell type ", type, " for each sample computed with ", method),
            filename = paste0(dir, filename), width = ifelse(ncol(plot_mat)<15, ncol(plot_mat), ncol(plot_mat)/3), height = nrow(plot_mat)/8)
 }
 
