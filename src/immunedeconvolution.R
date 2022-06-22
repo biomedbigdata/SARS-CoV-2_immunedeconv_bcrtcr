@@ -96,7 +96,7 @@ head(variants_ischgl_tpms)
 
 
 ## set the output directory and which dataset to use
-result_plotting_dir <- "plots/nuns/all_by_group/"
+result_plotting_dir <- "plots/nuns/boxplots/"
 dir.create(file.path(result_plotting_dir))
 dataset <- "nuns"  # choose one of "nuns", "nuns_naive", "nuns_conv", "variants_ischgl"
 
@@ -152,17 +152,32 @@ if (!exists("full_metadata")){
   full_metadata <- fread("data/all_pbmc_metadata.csv")
 }
 
+# stacked bar plots
 create_fraction_plot("quantiseq", result_plotting_dir)
 create_fraction_plot("epic", result_plotting_dir)
 
+# scatter plots
 create_score_plots("xcell", paste0(result_plotting_dir, "xcell_plots/"), color_by_sampling = color_by_sampling)
 create_score_plots("cibersort_abs", paste0(result_plotting_dir,"cibersort_abs_plots/"), color_by_sampling = color_by_sampling)
 create_score_plots("mcp_counter", paste0(result_plotting_dir,"mcp_counter_plots/"), color_by_sampling = color_by_sampling)
 
+# heatmaps
 create_hm("epic", result_plotting_dir, color_by_sampling = color_by_sampling)
 create_hm("xcell", result_plotting_dir, color_by_sampling = color_by_sampling)
 create_hm("cibersort_abs", result_plotting_dir, color_by_sampling = color_by_sampling)
 create_hm("mcp_counter", result_plotting_dir, color_by_sampling = color_by_sampling)
 create_hm("quantiseq", result_plotting_dir, color_by_sampling = color_by_sampling)
+
+# boxplots
+create_boxplot("epic", result_plotting_dir)
+create_boxplot("xcell", result_plotting_dir)
+create_boxplot("cibersort_abs", result_plotting_dir)
+create_boxplot("mcp_counter", result_plotting_dir)
+create_boxplot("quantiseq", result_plotting_dir)
+
+
+
+
+
 
 

@@ -6,6 +6,7 @@ library(immunedeconv)
 library(ggplot2)
 library(data.table)
 library(pheatmap)
+library(ggpubr)
 
 
 get_result_table <- function(method){
@@ -138,7 +139,7 @@ create_hm <- function(method, dir, exclude_gamma = F, color_by_sampling = F){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
   
-  result_dt <<- create_result_table(method, as_matrix = TRUE, exclude_gamma = exclude_gamma)
+  result_dt <- create_result_table(method, as_matrix = TRUE, exclude_gamma = exclude_gamma)
   
   # generate data table for the annotation
   if (color_by_sampling){
@@ -156,7 +157,7 @@ create_hm <- function(method, dir, exclude_gamma = F, color_by_sampling = F){
   
 
   # filename for saving the heatmap
-  filename <- paste0(gsub(" ", "_", method), "_hm.png") # paste filename from cell type
+  filename <- paste0(gsub(" ", "_", method), "_hm.png") # paste filename from method
   
   type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
   # plot as hm
@@ -168,4 +169,25 @@ create_hm <- function(method, dir, exclude_gamma = F, color_by_sampling = F){
            main = paste0("cell type ", type, " for each sample computed with ", method),
            filename = paste0(dir, filename), width = ifelse(ncol(plot_mat)<15, ncol(plot_mat), ncol(plot_mat)/3), height = nrow(plot_mat)/8)
 }
+
+# function to create a boxplot
+create_boxplot <- function(method, dir){
+  # create a new dir for result plots if it does not exist yet
+  dir.create(file.path(dir))
+  type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
+  
+  result_dt <<- create_result_table(method, as_matrix = F, exclude_gamma = F)
+  
+  p <- ggplot(result_dt, aes(x = cell_type, y = score, fill = group)) +
+    geom_boxplot() +
+    stat_compare_means(label = "p.signif", method = "wilcox.test") +
+    labs(title = paste0("Difference in ", type, " from ", method, " per cell type"),
+         y = type) +
+    rotate_x_text()
+  
+  num_cell_types = length(unique(result_dt$cell_type))
+  filename <- paste0(gsub(" ", "_", method), "_boxplot.png") 
+  ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2, num_cell_types * 1.3 ), units="cm")
+}
+
 
