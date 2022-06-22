@@ -14,7 +14,10 @@ library(patchwork)
 library(RColorBrewer)
 
 
-### transform tpms to correct input matrix with HGNC symbols as row names and sample names as column names
+################################################################################
+### prepare the data
+
+## transform tpms to correct input matrix with HGNC symbols as row names and sample names as column names
 # (might skip if data is in correct form already)
 
 ## read gene expression matrix for tpms from rds file
@@ -50,34 +53,54 @@ tpms <- tpms[!duplicated(mapped_names),]
 rownames(tpms) <- mapped_names[!duplicated(mapped_names)]
 
 # save tpms as rdata object for easy access
-save(tpms, file = '../data/variants_tpms_gene_names.RData')
+# save(tpms, file = '../data/variants_tpms_gene_names.RData')
+
+
+
+
+
+### prepare data for variants, ischgl and nuns data from csv files
+variants_ischgl_tpms <- read.csv("data/variants_ischgl_pbmcs_tpms.csv")
+nuns_tpms <- read.csv("data/nuns_pbmcs_tpms.csv")
+
+# remove gene_id, delete duplicated genes and make gene_name to rownames
+nuns_tpms <- nuns_tpms[!duplicated(nuns_tpms$gene_name),]
+rownames(nuns_tpms) <- nuns_tpms$gene_name
+nuns_tpms <- nuns_tpms[, !names(nuns_tpms) %in% c("X", "gene_id", "gene_name")]
+save(nuns_tpms, file = "data/nuns_tpms_prepared.RData")
+
+# do the same for variants and ischgl set
+variants_ischgl_tpms <- variants_ischgl_tpms[!duplicated(variants_ischgl_tpms$gene_name),]
+rownames(variants_ischgl_tpms) <- variants_ischgl_tpms$gene_name
+variants_ischgl_tpms <- variants_ischgl_tpms[, !names(variants_ischgl_tpms) %in% c("X", "gene_id", "gene_name", "gene_id.1", "gene_name.1")]
+save(variants_ischgl_tpms, file = "data/variants_ischgl_tpms_prepared.RData")
+
+
+
 
 
 ################################################################################
 ### start here if tpm matrix is already a matrix with genes in rows and samples in columns
 ### with HGNC symbols as row names and samples as column names
 
-load(file = "../data/variants_tpms_gene_names.RData") # load file
-head(tpms)
-
-methods = list("quantiseq",
-            "cibersort_abs",
-            "xcell",
-            "epic" #, "mcp_counter"
-            )
+load(file = "data/variants_ischgl_tpms_prepared.RData") # load file
+load(file = "data/nuns_tpms_prepared.RData") # load file
+head(nuns_tpms)
+head(variants_ischgl_tpms)
 
 
-## perform deconvolution
-# deconv_results <- lapply(methods, function(x) deconvolute(tpms, x))
+## set the output directory and which dataset to use
+result_plotting_dir <- "plots/variants_ischgl/"
+tpms <- variants_ischgl_tpms
 
 
-## perform each method alone
+## perform each of the deconvolution methods 
 # quantiseq
 quantiseq_result <- immunedeconv::deconvolute(tpms, "quantiseq", tumor = FALSE)
 
 # set configurations for cibersort
-set_cibersort_binary("cibersort/CIBERSORT.R")
-set_cibersort_mat("cibersort/LM22.txt")
+set_cibersort_binary("src/cibersort/CIBERSORT.R")
+set_cibersort_mat("src/cibersort/LM22.txt")
 
 # cibersort_abs
 cibersort_abs_result <- immunedeconv::deconvolute(tpms, "cibersort_abs")
@@ -100,29 +123,23 @@ set_cibersort_binary("src/cibersort/CIBERSORT.R")
 set_cibersort_mat("src/cibersort/LM22.txt")
 source('src/plotting.R') # script and method for visualization of deconvolution results with absolute scores
 
-# load data if not already loaded into work space
-if (!exists("tpms")){
-  load(file = "data/variants_tpms_gene_names.RData") # load file
-}
 
 # load meta data about samples
 if (!exists("full_metadata")){
-  full_metadata <- fread("data/full_pbmc_metadata_original.csv")
+  full_metadata <- fread("data/all_pbmc_metadata.csv")
 }
 
-create_score_plots("xcell", "plots/xcell_plots/")
-create_score_plots("cibersort_abs", "plots/cibersort_abs_plots/")
-create_score_plots("mcp_counter", "plots/mcp_counter_plots/")
+create_score_plots("xcell", paste0(result_plotting_dir, "xcell_plots/"))
+create_score_plots("cibersort_abs", paste0(result_plotting_dir,"cibersort_abs_plots/"))
+create_score_plots("mcp_counter", paste0(result_plotting_dir,"mcp_counter_plots/"))
 
-create_fraction_plot("quantiseq", "plots/")
-create_fraction_plot("epic", "plots/")
+create_fraction_plot("quantiseq", result_plotting_dir)
+create_fraction_plot("epic", result_plotting_dir)
 
-create_hm("epic", "plots/")
-create_hm("xcell", "plots/")
+create_hm("epic", result_plotting_dir)
+create_hm("xcell", result_plotting_dir)
+create_hm("cibersort_abs", result_plotting_dir)
+create_hm("mcp_counter", result_plotting_dir)
+create_hm("quantiseq", result_plotting_dir)
 
-
-
-# TODO: 
-#   - add color bar annotation to fraction plots
-#   - benchmarking pipeline
 

@@ -131,9 +131,9 @@ create_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
   result_dt <- create_result_table(method, as_matrix = TRUE, exclude_beta = exclude_beta, exclude_gamma = exclude_gamma)
   
   # generate data table for the annotation
-  annotation_dt <- result_dt[, .(group)]
+  annotation_dt <- as.data.frame(result_dt[, .(group)])
   rownames(annotation_dt) <- result_dt$sample
-  ann_colors = list(brewer.pal(n = length(unique(annotation_dt$group)), name = "Dark2"))
+  # TODO: add annotation color if necessary
   
   # generate plot data table
   plot_mat <- as.matrix(result_dt[, -c("sample", "group")])
@@ -148,8 +148,7 @@ create_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
   # plot as hm
   pheatmap(plot_mat, annotation_row = annotation_dt,
            cluster_cols = FALSE, 
-           color = brewer.pal(n = 9, name = "GnBu"),
-           annotation_colors = ann_colors,
+           color = brewer.pal(n = 9, name = "Greys"),
            border_color = NA,
            fontsize_row = 8, 
            main = paste0("cell type ", type, " for each sample computed with ", method),
