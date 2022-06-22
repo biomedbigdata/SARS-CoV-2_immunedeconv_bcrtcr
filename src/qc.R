@@ -34,7 +34,7 @@ colnames(pca_dt) <- c("sample", "PC1", "PC2")
 
 # separate samplename for coloring
 pca_dt <- unite(separate(pca_dt, col = sample, into = c(NA, "type", "number", "day"), sep = "_"),
-                'sample', type:number, sep = "_")
+                'sample', type:number, sep = "_", remove=F)
 
 
 ggplot(pca_dt, aes(x = PC1, y = PC2, color = sample)) +

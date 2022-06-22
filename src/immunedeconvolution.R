@@ -73,6 +73,12 @@ save(nuns_tpms, file = "data/nuns_tpms_prepared.RData")
 variants_ischgl_tpms <- variants_ischgl_tpms[!duplicated(variants_ischgl_tpms$gene_name),]
 rownames(variants_ischgl_tpms) <- variants_ischgl_tpms$gene_name
 variants_ischgl_tpms <- variants_ischgl_tpms[, !names(variants_ischgl_tpms) %in% c("X", "gene_id", "gene_name", "gene_id.1", "gene_name.1")]
+
+# filter variants_ischgl dataframe for desired samples (only Seronegative or variant)
+variants_ischgl_tpms <- cbind(variants_ischgl_tpms[, startsWith(names(variants_ischgl_tpms), "Alpha")],
+                                variants_ischgl_tpms[, startsWith(names(variants_ischgl_tpms), "Gamma")],
+                                variants_ischgl_tpms[, startsWith(names(variants_ischgl_tpms), "Seronegative")])
+
 save(variants_ischgl_tpms, file = "data/variants_ischgl_tpms_prepared.RData")
 
 
@@ -90,8 +96,22 @@ head(variants_ischgl_tpms)
 
 
 ## set the output directory and which dataset to use
-result_plotting_dir <- "plots/variants_ischgl/"
-tpms <- variants_ischgl_tpms
+result_plotting_dir <- "plots/nuns/all_by_group/"
+dir.create(file.path(result_plotting_dir))
+dataset <- "nuns"  # choose one of "nuns", "nuns_naive", "nuns_conv", "variants_ischgl"
+
+
+# set tpms to correct data and whether to use the old id or the new id
+if(dataset == "nuns"){
+  tpms <- nuns_tpms
+} else if (dataset == "nuns_naive") {
+  tpms <- nuns_tpms[, startsWith(names(nuns_tpms), "BNT_Naive")]
+} else if (dataset == "nuns_conv") {
+  tpms <- nuns_tpms[, startsWith(names(nuns_tpms), "BNT_Convalescent")]
+} else if (dataset == "variants_ischgl") {
+  tpms <- variants_ischgl_tpms
+}
+old_id <- ifelse(startsWith(dataset,"nuns"), TRUE, FALSE)
 
 
 ## perform each of the deconvolution methods 
@@ -118,6 +138,9 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 
 ################################################################################
 ### VISUALISATION
+
+color_by_sampling = F # parameter whether to color by group (F) or by sampling (T) (for nuns color sampling == by day)
+
 # configurations for cibersort
 set_cibersort_binary("src/cibersort/CIBERSORT.R")
 set_cibersort_mat("src/cibersort/LM22.txt")
@@ -129,17 +152,17 @@ if (!exists("full_metadata")){
   full_metadata <- fread("data/all_pbmc_metadata.csv")
 }
 
-create_score_plots("xcell", paste0(result_plotting_dir, "xcell_plots/"))
-create_score_plots("cibersort_abs", paste0(result_plotting_dir,"cibersort_abs_plots/"))
-create_score_plots("mcp_counter", paste0(result_plotting_dir,"mcp_counter_plots/"))
-
 create_fraction_plot("quantiseq", result_plotting_dir)
 create_fraction_plot("epic", result_plotting_dir)
 
-create_hm("epic", result_plotting_dir)
-create_hm("xcell", result_plotting_dir)
-create_hm("cibersort_abs", result_plotting_dir)
-create_hm("mcp_counter", result_plotting_dir)
-create_hm("quantiseq", result_plotting_dir)
+create_score_plots("xcell", paste0(result_plotting_dir, "xcell_plots/"), color_by_sampling = color_by_sampling)
+create_score_plots("cibersort_abs", paste0(result_plotting_dir,"cibersort_abs_plots/"), color_by_sampling = color_by_sampling)
+create_score_plots("mcp_counter", paste0(result_plotting_dir,"mcp_counter_plots/"), color_by_sampling = color_by_sampling)
+
+create_hm("epic", result_plotting_dir, color_by_sampling = color_by_sampling)
+create_hm("xcell", result_plotting_dir, color_by_sampling = color_by_sampling)
+create_hm("cibersort_abs", result_plotting_dir, color_by_sampling = color_by_sampling)
+create_hm("mcp_counter", result_plotting_dir, color_by_sampling = color_by_sampling)
+create_hm("quantiseq", result_plotting_dir, color_by_sampling = color_by_sampling)
 
 

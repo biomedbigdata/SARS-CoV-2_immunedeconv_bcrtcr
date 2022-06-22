@@ -33,8 +33,10 @@ get_result_table <- function(method){
   return(result_dt)
 }
 
+
+
 # function to create the desired data table format (long/dt or wide/matrix)
-create_result_table <- function(method, as_matrix = F, exclude_beta = F, exclude_gamma = F){
+create_result_table <- function(method, as_matrix = F, exclude_gamma = F){
   # create the result and get the matrix (cell_type x sample)
   result_dt <- get_result_table(method)
   
@@ -42,12 +44,14 @@ create_result_table <- function(method, as_matrix = F, exclude_beta = F, exclude
   result_dt_long <- as.data.table(gather(result_dt, sample, score, -c(cell_type)))
   
   # merge result_dt with the meta data containing info about groups
-  result_dt_long <- merge(result_dt_long, full_metadata[, .(old_id, group)],
-                          by.x = "sample", by.y = "old_id", all.x = T, allow.cartesian = T)
-  
-  if (exclude_beta) {
-    result_dt_long <- result_dt_long[group != "Beta"]
+  if (old_id){
+    result_dt_long <- merge(result_dt_long, full_metadata[, .(old_id, group, sampling)],
+                            by.x = "sample", by.y = "old_id", all.x = T, allow.cartesian = T)
+  } else {
+    result_dt_long <- merge(result_dt_long, full_metadata[, .(sample_id, group)],
+                            by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
   }
+  
   if (exclude_gamma) {
     result_dt_long <- result_dt_long[group != "Gamma"]
   }
@@ -64,12 +68,15 @@ create_result_table <- function(method, as_matrix = F, exclude_beta = F, exclude
 }
 
 
+
 # function to create plots for each cell type returned by deconvolution method that returns scores
-create_score_plots <- function(method, dir){
+create_score_plots <- function(method, dir, color_by_sampling = F){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
 
   result_dt <- create_result_table(method)
+  color_by <- ifelse(color_by_sampling, "sampling", "group")
+  
   
   # generate plot for every cell type, save to xcell_plots/<cell type>.png
   for (ct in unique(result_dt$cell_type)){
@@ -78,7 +85,7 @@ create_score_plots <- function(method, dir){
     
     # generate plot
     p <- ggplot(plot_dt) +
-      geom_point(aes(x=sample, y=score, color=group), size=4) +
+      geom_point(aes(x=sample, y=score, color=get(color_by)), size=4) +
       scale_color_brewer(palette="Paired") +
       coord_flip() +
       theme_bw() +
@@ -90,10 +97,12 @@ create_score_plots <- function(method, dir){
     cell_type <- gsub("\\+", "", ct) # remove "+" from cell type if necessary
     filename <- paste0(gsub(" ", "_", cell_type), ".png") # paste filename from cell type
     # save plot
-    ggsave(filename, plot=p, path=dir, height=num_samples/3.5, width=num_samples/6, units="cm")
+    # ggsave(filename, plot=p, path=dir, height=num_samples/3.5, width=num_samples/6, units="cm")
+    ggsave(filename, plot=p, path=dir, height=num_samples/3.5, units="cm")
   }
 
 }
+
 
 
 # function to create and save bar plot from deconvolution method that returns fractions
@@ -124,19 +133,24 @@ create_fraction_plot <- function(method, dir){
 }
 
 
-create_hm <- function(method, dir, exclude_beta = F, exclude_gamma = F){
+# function to create a sample x cell type matrix with fraction or score values
+create_hm <- function(method, dir, exclude_gamma = F, color_by_sampling = F){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
   
-  result_dt <- create_result_table(method, as_matrix = TRUE, exclude_beta = exclude_beta, exclude_gamma = exclude_gamma)
+  result_dt <<- create_result_table(method, as_matrix = TRUE, exclude_gamma = exclude_gamma)
   
   # generate data table for the annotation
-  annotation_dt <- as.data.frame(result_dt[, .(group)])
+  if (color_by_sampling){
+    annotation_dt <- as.data.frame(result_dt[, .(sampling)])
+  } else {
+    annotation_dt <- as.data.frame(result_dt[, .(group)])
+  }
   rownames(annotation_dt) <- result_dt$sample
   # TODO: add annotation color if necessary
   
   # generate plot data table
-  plot_mat <- as.matrix(result_dt[, -c("sample", "group")])
+  plot_mat <- as.matrix(result_dt[, -c("sample", "group", "sampling")])
   rownames(plot_mat) <- result_dt$sample
   class(plot_mat) <- "numeric"
   
