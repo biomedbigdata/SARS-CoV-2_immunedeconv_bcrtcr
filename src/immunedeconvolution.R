@@ -96,9 +96,9 @@ head(variants_ischgl_tpms)
 
 
 ## set the output directory and which dataset to use
-result_plotting_dir <- "plots/nuns/boxplots/"
+result_plotting_dir <- "plots/variants_ischgl/boxplots/"
 dir.create(file.path(result_plotting_dir))
-dataset <- "nuns"  # choose one of "nuns", "nuns_naive", "nuns_conv", "variants_ischgl"
+dataset <- "variants_ischgl"  # choose one of "nuns", "nuns_naive", "nuns_conv", "variants_ischgl"
 
 
 # set tpms to correct data and whether to use the old id or the new id
@@ -123,13 +123,13 @@ set_cibersort_binary("src/cibersort/CIBERSORT.R")
 set_cibersort_mat("src/cibersort/LM22.txt")
 
 # cibersort_abs
-cibersort_abs_result <- immunedeconv::deconvolute(tpms, "cibersort_abs")
+cibersort_abs_result <- immunedeconv::deconvolute(tpms, "cibersort_abs", tumor = FALSE)
 
 # mcp_counter
 mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(tpms) # somehow works only this way
 
 # xcell
-xcell_result <- immunedeconv::deconvolute(tpms, "xcell")
+xcell_result <- immunedeconv::deconvolute(tpms, "xcell", tumor = FALSE)
 
 # epic
 epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)

@@ -187,7 +187,7 @@ create_boxplot <- function(method, dir){
   
   num_cell_types = length(unique(result_dt$cell_type))
   filename <- paste0(gsub(" ", "_", method), "_boxplot.png") 
-  ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2, num_cell_types * 1.3 ), units="cm")
+  ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2.4, num_cell_types * 1.6 ), units="cm")
 }
 
 
