@@ -186,8 +186,8 @@ create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color
 create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color, reference)
 
 # boxplots for time series
-variants = dataset == "variants_ischgl"
 color = "day_group"
+variants = dataset == "variants_ischgl" # check which dataset is used, variants needs different metadata
 create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color = color, time = T, variants = variants)
 create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color = color, time = T, variants = variants)
 create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color = color, time = T, variants = variants)
