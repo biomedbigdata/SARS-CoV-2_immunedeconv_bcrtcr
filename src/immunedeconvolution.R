@@ -146,7 +146,7 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 ### VISUALISATION
 
 color_by_sampling = F # parameter whether to color by group (F) or by sampling (T) (for nuns color sampling == by day)
-result_plotting_dir <- "plots/variants_ischgl/boxplots/time/"
+result_plotting_dir <- "plots/nuns/all_by_day/boxplots/"
 
 
 # configurations for cibersort
@@ -186,12 +186,13 @@ create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color
 create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color, reference)
 
 # boxplots for time series
+variants = dataset == "variants_ischgl"
 color = "day_group"
-create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color = color, time = T)
-create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color = color, time = T)
-create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color = color, time = T)
-create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color = color, time = T)
-create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color = color, time = T)
+create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color = color, time = T, variants = variants)
+create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color = color, time = T, variants = variants)
+create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color = color, time = T, variants = variants)
+create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color = color, time = T, variants = variants)
+create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color = color, time = T, variants = variants)
 
 
 

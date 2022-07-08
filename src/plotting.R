@@ -236,11 +236,11 @@ create_boxplot <- function(method, dir, color = "group", reference = ".all."){
 
 
 # function to create boxplots annotated with 
-create_boxplot <- function(method, dir, color = "group", reference = ".all.", time = F){
+create_boxplot <- function(method, dir, color = "group", reference = ".all.", time = F, variants = F){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
   type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
-  if (time){
+  if (time & variants){
     result_dt <<- create_time_result_table(method, exclude_gamma = F)
   } else {
     result_dt <<- create_result_table(method, as_matrix = F, exclude_gamma = F)
