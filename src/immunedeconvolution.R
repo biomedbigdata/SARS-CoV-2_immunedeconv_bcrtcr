@@ -82,6 +82,11 @@ variants_ischgl_tpms <- cbind(variants_ischgl_tpms[, startsWith(names(variants_i
 save(variants_ischgl_tpms, file = "data/variants_ischgl_tpms_prepared.RData")
 
 
+# add something to metadata
+load(file = "data/all_pbmc_metadata.RData") # loaa metadata
+# add day group column
+full_metadata[, day_group := ifelse(num_day <= 11, "<= day 11", "> day 11")]
+save(full_metadata, file = "data/all_pbmc_metadata.RData")
 
 
 
@@ -91,14 +96,15 @@ save(variants_ischgl_tpms, file = "data/variants_ischgl_tpms_prepared.RData")
 
 load(file = "data/variants_ischgl_tpms_prepared.RData") # load file
 load(file = "data/nuns_tpms_prepared.RData") # load file
+load(file = "data/all_pbmc_metadata.RData") # load metadata
 head(nuns_tpms)
 head(variants_ischgl_tpms)
 
 
 ## set the output directory and which dataset to use
-result_plotting_dir <- "plots/variants_ischgl/boxplots/"
+result_plotting_dir <- "plots/nuns/all_by_group/boxplots/"
 dir.create(file.path(result_plotting_dir))
-dataset <- "variants_ischgl"  # choose one of "nuns", "nuns_naive", "nuns_conv", "variants_ischgl"
+dataset <- "nuns"  # choose one of "nuns", "nuns_naive", "nuns_convalescent", "variants_ischgl"
 
 
 # set tpms to correct data and whether to use the old id or the new id
@@ -106,7 +112,7 @@ if(dataset == "nuns"){
   tpms <- nuns_tpms
 } else if (dataset == "nuns_naive") {
   tpms <- nuns_tpms[, startsWith(names(nuns_tpms), "BNT_Naive")]
-} else if (dataset == "nuns_conv") {
+} else if (dataset == "nuns_convalescent") {
   tpms <- nuns_tpms[, startsWith(names(nuns_tpms), "BNT_Convalescent")]
 } else if (dataset == "variants_ischgl") {
   tpms <- variants_ischgl_tpms
@@ -140,6 +146,8 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 ### VISUALISATION
 
 color_by_sampling = F # parameter whether to color by group (F) or by sampling (T) (for nuns color sampling == by day)
+result_plotting_dir <- "plots/variants_ischgl/boxplots/time/"
+
 
 # configurations for cibersort
 set_cibersort_binary("src/cibersort/CIBERSORT.R")
@@ -169,15 +177,49 @@ create_hm("mcp_counter", result_plotting_dir, color_by_sampling = color_by_sampl
 create_hm("quantiseq", result_plotting_dir, color_by_sampling = color_by_sampling)
 
 # boxplots
-create_boxplot("epic", result_plotting_dir)
-create_boxplot("xcell", result_plotting_dir)
-create_boxplot("cibersort_abs", result_plotting_dir)
-create_boxplot("mcp_counter", result_plotting_dir)
-create_boxplot("quantiseq", result_plotting_dir)
+color = "group"
+reference = ".all." # for the reference group in variants data set
+create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color, reference)
+create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color, reference)
+create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color, reference)
+create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color, reference)
+create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color, reference)
+
+# boxplots for time series
+color = "day_group"
+create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color = color, time = T)
+create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color = color, time = T)
+create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color = color, time = T)
+create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color = color, time = T)
+create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color = color, time = T)
 
 
 
 
+# plot distribution of days for both datasets
+load("data/alpha_gamma_time_meta.RData")
+ggplot(alpha_gamma_meta, aes(x = num_day, fill = sampling)) +
+  geom_histogram(color = "grey", bins = max(alpha_gamma_meta$num_day)) +
+  scale_fill_grey()+
+  labs(title = "Distribution of days when samples were taken for variants_ischgl data")
+ggsave("plots/variants_ischgl_distribution_days.png")
 
+ggplot(full_metadata[group %in% c("Naive", "Convalescent")], aes(x = num_day)) +
+  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive", "Convalescent")]$num_day)) +
+  scale_fill_grey()+
+  labs(title = "Distribution of days when samples were taken for nuns data")
+ggsave("plots/nuns_distribution_days.png")
+
+ggplot(full_metadata[group == "Naive"], aes(x = num_day)) +
+  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive", "Convalescent")]$num_day)) +
+  scale_fill_grey()+
+  labs(title = "Distribution of days when samples were taken for nuns naive data")
+ggsave("plots/nuns_naive_distribution_days.png")
+
+ggplot(full_metadata[group == "Convalescent"], aes(x = num_day)) +
+  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive", "Convalescent")]$num_day)) +
+  scale_fill_grey()+
+  labs(title = "Distribution of days when samples were taken for nuns naive data")
+ggsave("plots/nuns_convalescent_distribution_days.png")
 
 
