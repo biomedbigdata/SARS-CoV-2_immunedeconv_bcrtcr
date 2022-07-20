@@ -102,9 +102,9 @@ nuns_results <- melt(nuns_results,
 
 # combine with metadata
 load(file = "data/all_pbmc_metadata.RData") # load metadata
-load(file = "data/alpha_gamma_time_meta.RData") # load time series metadata for variants
+load(file = "data/alpha_gamma_sero_meta.RData") # load time series metadata for variants
 
-variants_ischgl_results <- merge(variants_ischgl_results, alpha_gamma_sero_meta_test,
+variants_ischgl_results <- merge(variants_ischgl_results, alpha_gamma_sero_meta,
                                  by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
 
 
