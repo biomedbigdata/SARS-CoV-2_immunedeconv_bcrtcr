@@ -5,7 +5,6 @@
 # remotes::install_github("icbi-lab/immunedeconv")
 
 library(data.table)
-library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(immunedeconv)
@@ -97,13 +96,12 @@ save(full_metadata, file = "data/all_pbmc_metadata.RData")
 load(file = "data/variants_ischgl_tpms_prepared.RData") # load file
 load(file = "data/nuns_tpms_prepared.RData") # load file
 load(file = "data/all_pbmc_metadata.RData") # load metadata
+load(file = "data/alpha_gamma_time_meta.RData") # load time series metadata for variants
 head(nuns_tpms)
 head(variants_ischgl_tpms)
 
 
-## set the output directory and which dataset to use
-result_plotting_dir <- "plots/nuns/all_by_group/boxplots/"
-dir.create(file.path(result_plotting_dir))
+## choose which dataset to use
 dataset <- "nuns"  # choose one of "nuns", "nuns_naive", "nuns_convalescent", "variants_ischgl"
 
 
@@ -144,9 +142,12 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 
 ################################################################################
 ### VISUALISATION
+# TODO: add parameter whether to save the plot or return (hard for loops...)
 
 color_by_sampling = F # parameter whether to color by group (F) or by sampling (T) (for nuns color sampling == by day)
-result_plotting_dir <- "plots/nuns/all_by_day/boxplots/"
+
+result_plotting_dir <- "plots/nuns/naive_by_day/boxplots/"
+dir.create(file.path(result_plotting_dir))
 
 
 # configurations for cibersort
@@ -176,25 +177,58 @@ create_hm("cibersort_abs", result_plotting_dir, color_by_sampling = color_by_sam
 create_hm("mcp_counter", result_plotting_dir, color_by_sampling = color_by_sampling)
 create_hm("quantiseq", result_plotting_dir, color_by_sampling = color_by_sampling)
 
-# boxplots
+
+# boxplot for variants all celltypes colored by group
+create_boxplot("epic", result_plotting_dir, reference = "Seronegative")
+create_boxplot("xcell", result_plotting_dir, reference = "Seronegative")
+create_boxplot("cibersort_abs", result_plotting_dir, reference = "Seronegative")
+create_boxplot("mcp_counter", result_plotting_dir, reference = "Seronegative")
+create_boxplot("quantiseq", result_plotting_dir, reference = "Seronegative")
+
+# boxplots by cell type
 color = "group"
 reference = ".all." # for the reference group in variants data set
-create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color, reference)
-create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color, reference)
-create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color, reference)
-create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color, reference)
-create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color, reference)
+create_boxplots("epic", paste0(result_plotting_dir, "epic/"), color, reference)
+create_boxplots("xcell", paste0(result_plotting_dir, "xcell/"), color, reference)
+create_boxplots("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color, reference)
+create_boxplots("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color, reference)
+create_boxplots("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color, reference)
 
-# boxplots for time series
-color = "day_group"
+# boxplots for variants time series
+color = "group"
 variants = dataset == "variants_ischgl" # check which dataset is used, variants needs different metadata
-create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color = color, time = T, variants = variants)
-create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color = color, time = T, variants = variants)
-create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color = color, time = T, variants = variants)
-create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color = color, time = T, variants = variants)
-create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color = color, time = T, variants = variants)
+create_time_boxplot("epic", paste0(result_plotting_dir, "epic/"), color = color, variants = variants, exclude_gamma = T)
+create_time_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color = color, variants = variants, exclude_gamma = T)
+create_time_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color = color, variants = variants, exclude_gamma = T)
+create_time_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color = color, variants = variants, exclude_gamma = T)
+create_time_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color = color, variants = variants, exclude_gamma = T)
+
+# boxplots for nuns all celltypes colored by group
+create_boxplot("epic", result_plotting_dir)
+create_boxplot("xcell", result_plotting_dir)
+create_boxplot("cibersort_abs", result_plotting_dir)
+create_boxplot("mcp_counter", result_plotting_dir)
+create_boxplot("quantiseq", result_plotting_dir)
 
 
+# boxplots for nuns by group for each cell type 
+# TODO
+
+# boxplots for nuns time series
+# boxplots with all celltypes in one plot
+color = "day_group"
+create_time_boxplot_nuns("epic", paste0(result_plotting_dir, "epic/"), color)
+create_time_boxplot_nuns("xcell", paste0(result_plotting_dir, "xcell/"), color)
+create_time_boxplot_nuns("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color)
+create_time_boxplot_nuns("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color)
+create_time_boxplot_nuns("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color)
+# boxplots for each cell type
+reference = "> day 11" # for the reference group in data set
+create_boxplot("epic", paste0(result_plotting_dir, "epic/"), color, reference = reference, time = T)
+create_boxplot("xcell", paste0(result_plotting_dir, "xcell/"), color, reference = reference, time = T)
+create_boxplot("cibersort_abs", paste0(result_plotting_dir, "cibersort_abs/"), color, reference = reference, time = T)
+create_boxplot("mcp_counter", paste0(result_plotting_dir, "mcp_counter/"), color, reference = reference, time = T)
+create_boxplot("quantiseq", paste0(result_plotting_dir, "quantiseq/"), color, reference = reference, time = T)
 
 
 # plot distribution of days for both datasets
@@ -205,22 +239,45 @@ ggplot(alpha_gamma_meta, aes(x = num_day, fill = sampling)) +
   labs(title = "Distribution of days when samples were taken for variants_ischgl data")
 ggsave("plots/variants_ischgl_distribution_days.png")
 
-ggplot(full_metadata[group %in% c("Naive", "Convalescent")], aes(x = num_day)) +
+ggplot(alpha_gamma_meta, aes(x = num_day, fill = group)) +
+  geom_histogram(color = "grey", bins = max(alpha_gamma_meta$num_day)) +
+  scale_fill_manual(values = c("grey40", "grey60", "green3"))+
+  labs(title = "Distribution of days when samples were taken for variants_ischgl data")
+ggsave("plots/variants_ischgl_distribution_days_by_group.png")
+
+ggplot(full_metadata[group %in% c("Naive", "Convalescent")], aes(x = num_day, fill = group)) +
   geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive", "Convalescent")]$num_day)) +
   scale_fill_grey()+
   labs(title = "Distribution of days when samples were taken for nuns data")
 ggsave("plots/nuns_distribution_days.png")
 
 ggplot(full_metadata[group == "Naive"], aes(x = num_day)) +
-  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive", "Convalescent")]$num_day)) +
+  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive")]$num_day)) +
   scale_fill_grey()+
   labs(title = "Distribution of days when samples were taken for nuns naive data")
 ggsave("plots/nuns_naive_distribution_days.png")
 
 ggplot(full_metadata[group == "Convalescent"], aes(x = num_day)) +
-  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Naive", "Convalescent")]$num_day)) +
+  geom_histogram(color = "grey", bins = max(full_metadata[group %in% c("Convalescent")]$num_day)) +
   scale_fill_grey()+
-  labs(title = "Distribution of days when samples were taken for nuns naive data")
+  labs(title = "Distribution of days when samples were taken for nuns convalescent data")
 ggsave("plots/nuns_convalescent_distribution_days.png")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

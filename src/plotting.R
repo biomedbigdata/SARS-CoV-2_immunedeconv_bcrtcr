@@ -8,6 +8,7 @@ library(data.table)
 library(pheatmap)
 library(ggpubr)
 library(stringr)
+library(dplyr)
 
 mytheme <- theme(plot.title = element_text(size = 11))
 
@@ -73,7 +74,8 @@ create_result_table <- function(method, as_matrix = F, exclude_gamma = F){
   return(result_dt_long[order(group)])
 }
 
-# function to create the result table merged with time relevant data for alpha, alpha_ek and gamma
+
+# function to create the result table merged with time relevant data for alpha, alpha_ek and gamma plus seronegative for all time groups
 create_time_result_table <- function(method, exclude_gamma = F){
   # create the result and get the matrix (cell_type x sample)
   result_dt <- get_result_table(method)
@@ -82,9 +84,9 @@ create_time_result_table <- function(method, exclude_gamma = F){
   result_dt_long <- as.data.table(gather(result_dt, sample, score, -c(cell_type)))
   
   # merge result_dt with the meta data containing info about groups
-  result_dt_long <- merge(result_dt_long, alpha_gamma_meta,
-                          by.x = "sample", by.y = "sample_id", allow.cartesian = T)
-  
+  result_dt_long <- merge(result_dt_long, alpha_gamma_sero_meta_test,
+                          by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
+  result_dt_long <- result_dt_long[group %in% c("Alpha", "Alpha_EK", "Gamma", "Seronegative")]
   if (exclude_gamma) {
     result_dt_long <- result_dt_long[group != "Gamma"]
   }
@@ -210,33 +212,55 @@ create_hm <- function(method, dir, exclude_gamma = F, color_by_sampling = F){
 
 
 # function to create a boxplot
-create_boxplot <- function(method, dir, color = "group", reference = ".all."){
+create_time_boxplot_nuns <- function(method, dir, color = "group", reference = ".all."){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
   type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
   
   result_dt <<- create_result_table(method, as_matrix = F, exclude_gamma = F)
   
-  for (ct in unique(result_dt$cell_type)){
-    
-    p <- ggplot(result_dt[cell_type == ct], aes(x = group, y = score)) +
-      geom_boxplot() +
-      # facet_wrap(~cell_type, scales = "free_y") +
-      stat_compare_means(label = "p.signif", method = "t.test", ref.group = reference) +
-      # stat_compare_means(symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))) +
-      labs(title = paste0("Difference in ", ct ," ", type, " from ", method, " for ", dataset)) +
-      rotate_x_text() +
-      mytheme
-    
-    filename <- paste0(gsub("[ +]", "_", ct), "_boxplot_", gsub(" ", "_", method), ".png") 
-    ggsave(filename, plot=p, path=dir, width = 17, height = 15, units = "cm")
-    # ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2.4, num_cell_types * 1.6 ), units="cm")
-  }
+  p <- ggplot(result_dt, aes(x = cell_type, y = score, color = get(color))) +
+    geom_boxplot() +
+    # facet_wrap(~cell_type, scales = "free_y") +
+    stat_compare_means(label = "p.signif", method = "t.test", hide.ns = T) +
+    # stat_compare_means(symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))) +
+    labs(title = paste0("Difference in ", type, " from ", method, " for ", dataset, " per cell type by time group")) +
+    rotate_x_text() +
+    mytheme
+  
+  filename <- paste0(gsub(" ", "_", method), "_boxplot_", ".png") 
+  ggsave(filename, plot=p, path=dir, width = 17, height = 15, units = "cm") # TODO: different sizes!
+  # ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2.4, num_cell_types * 1.6 ), units="cm")
 }
 
 
-# function to create boxplots annotated with 
-create_boxplot <- function(method, dir, color = "group", reference = ".all.", time = F, variants = F){
+# create a boxplot for a method withx = cell types, y = scores coloured by group
+create_boxplot <- function(method, dir, reference = ".all."){
+  # create a new dir for result plots if it does not exist yet
+  dir.create(file.path(dir))
+  type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
+  result_dt <<- create_result_table(method, as_matrix = F, exclude_gamma = F)
+
+  title <- paste0("Difference in ", type, " from ", method, " per cell type for", dataset)
+  
+  p <- ggplot(result_dt, aes(x = cell_type, y = score, color = group)) +
+    geom_boxplot() +
+    stat_compare_means(label = "p.signif", method = "t.test", ref.group = reference) +
+    # facet_grid(. ~ day_group, scales = "free_y") +
+    # stat_compare_means(symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))) +
+    labs(title = title,
+         x = color) +
+    rotate_x_text() +
+    mytheme
+  
+  filename <- paste0( gsub(" ", "_", method), "_boxplot", ".png")
+  ggsave(filename, plot=p, path=dir, width = 17, height = 15, units = "cm")  # TODO: different sizes!
+  # ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2.4, num_cell_types * 1.6 ), units="cm")
+}
+
+
+# function to create boxplots for a method for each celltype with "color" on the x axis
+create_boxplots <- function(method, dir, color = "group", reference = ".all.", time = F, variants = F){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))
   type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
@@ -252,8 +276,8 @@ create_boxplot <- function(method, dir, color = "group", reference = ".all.", ti
     
     p <- ggplot(result_dt[cell_type == ct], aes(x = get(color), y = score)) +
       geom_boxplot() +
-      # facet_wrap(~cell_type, scales = "free_y") +
       stat_compare_means(label = "p.signif", method = "t.test", ref.group = reference) +
+      # facet_grid(. ~ day_group, scales = "free_y") +
       # stat_compare_means(symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))) +
       labs(title = title,
            x = color) +
@@ -266,7 +290,36 @@ create_boxplot <- function(method, dir, color = "group", reference = ".all.", ti
   }
 }
 
-
+# function to create boxplots annotated with 
+create_time_boxplot <- function(method, dir, color = "group", reference = ".all.", variants = F, exclude_gamma = F){
+  # create a new dir for result plots if it does not exist yet
+  dir.create(file.path(dir))
+  type <- ifelse(method %in% c("quantiseq", "epic"), "fractions", "scores")
+  if (variants){
+    result_dt <<- create_time_result_table(method, exclude_gamma = exclude_gamma)
+  } else {
+    result_dt <<- create_result_table(method, as_matrix = F, exclude_gamma = exclude_gamma)
+  }
+  for (day in unique(result_dt$day_group)){
+    for (ct in unique(result_dt$cell_type)){
+      title <- paste0("Difference in ", ct ," ", type, " from ", method, " for day ",day, " from ", dataset)
+      
+      p <- ggplot(result_dt[cell_type == ct & day_group == day], aes(x = get(color), y = score)) +
+        geom_boxplot() +
+        stat_compare_means(label = "p.signif", method = "t.test", ref.group = reference) +
+        # facet_grid(. ~ day_group, scales = "free_y") +
+        # stat_compare_means(symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 1), symbols = c("****", "***", "**", "*", "ns"))) +
+        labs(title = title,
+             x = color) +
+        rotate_x_text() +
+        mytheme
+      
+      filename <- paste0(day, "_", gsub("[ +]", "_", ct), "_boxplot_", gsub(" ", "_", method), ".png") 
+      ggsave(filename, plot=p, path=dir, width = 17, height = 15, units = "cm")
+      # ggsave(filename, plot=p, path=dir, width=ifelse(num_cell_types < 15, num_cell_types*2.4, num_cell_types * 1.6 ), units="cm")
+    }
+  }
+}
 
 
 
