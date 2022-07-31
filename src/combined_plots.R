@@ -4,6 +4,7 @@
 library(data.table)
 library(ggplot2)
 library(ggpubr)
+library(cowplot)
 
 load("data/variants_ischgl_deconv.RData")
 load("data/nuns_deconv.RData")
@@ -14,21 +15,48 @@ my_theme <- theme(panel.background = element_rect(fill = "white", colour = "grey
 
 # conditional plot variants_ischgl
 conditional_plot_dt <- variants_ischgl_results[method %in% c("quantiseq", "mcp_counter", "epic", "xcell")]
-conditional_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
-conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
-conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
-conditional_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]
-
+# conditional_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
+# conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
+# conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
+# conditional_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]
+conditional_plot_dt[, value := ifelse(method == "mcp_counter", log(value), value)]
 
 conditional_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"), c("Gamma", "Seronegative"))
-ggplot(conditional_plot_dt[cell_type %in% c("B cell", "Neutrophil", "T cells")], 
+ggplot(conditional_plot_dt[cv_cell_type %in% c("B cell", "Neutrophil", "T cell CD4+", "T cell CD8+")], 
        aes(x = group, y = value, fill = group)) +
   geom_boxplot() +
-  facet_grid(rows = vars(method), cols = vars(cell_type), scales = "free") +
+  facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
   stat_compare_means(comparisons = conditional_variants_comparisons) +
   labs(title = "Differences in immune cell abundances between infected and healthy") +
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
   my_theme
+
+# variants conditional plots for each method combined to get free scales
+conditional_plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
+  ggplot(conditional_plot_dt[method == m & cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
+         aes(x = group, y = value, fill = group)) +
+    geom_boxplot() + 
+    facet_wrap(~cv_cell_type, ncol = 4, scales = "free_y") +
+    stat_compare_means(comparisons = conditional_variants_comparisons, vjust = 1.2) +
+    theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
+    labs(title = m, x = "group") +
+    my_theme + theme(axis.title.x = element_blank(), axis.text.x = element_blank())
+})
+
+conditional_figure <- ggarrange(conditional_plots[[1]], 
+                                conditional_plots[[2]], 
+                                conditional_plots[[3]], 
+                                conditional_plots[[4]],
+                    heights = c(1,1,1,1),
+                    labels = names(conditional_plots),
+                    ncol = 1,
+                    align = "v",
+                    common.legend = T,
+                    legend = "bottom")
+annotate_figure(conditional_figure, 
+                top = text_grob("Differences in immune cell abundances between infected and healthy", size = 16))
+
+
 
 # without color because of duplicate information
 # ggplot(conditional_plot_dt[cell_type %in% c("B cell", "Neutrophil", "T cells")], 
@@ -68,7 +96,7 @@ ggplot(nuns_conditional_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cell
 #   my_theme
 
 # time series variants_ischgl --> exclude Gamma samples, use epic and mcp_counter as they are best for time series data and the cell types
-variants_time_plot_dt <- variants_ischgl_results[method %in% c("mcp_counter", "epic") & group != "Gamma"]
+variants_time_plot_dt <- variants_ischgl_results[method %in% c("mcp_counter", "epic", "quantiseq", "xcell") & group != "Gamma"]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -96,15 +124,43 @@ variants_time_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", 
 
 # day_group on x axis, not as facet
 variants_time_plot_dt[, value := ifelse(method == "mcp_counter", log(value), value)]
-ggplot(variants_time_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cells")], 
-       aes(x = factor(day_group, levels = c("<= day 5", "<= day 10", "<= day 15", "<= day 30", "> day 30")), y = value, color = group)) +
+ggplot(variants_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
+       aes(x = factor(day_group, levels = c("day [0,5]", "day [6,10]", "day [11,15]", "day [16,30]", "> day 30")), y = value, color = group)) +
   geom_boxplot() + 
   geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
-  facet_grid(rows = vars(method), cols = vars(cell_type), scales = "free") +
+  facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
   labs(title = "Difference in immune cell abundance over time after infection",
        x = "day_group") +
   my_theme
+
+
+# variants time plots for each method combined to get free scales
+plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
+  ggplot(variants_time_plot_dt[method == m & cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
+                  aes(x = factor(day_group, levels = c("day [0,5]", "day [6,10]", "day [11,15]", "day [16,30]", "> day 30")), y = value, color = group)) +
+    geom_boxplot() + 
+    geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
+    facet_wrap(~cv_cell_type, ncol = 4, scales = "free") +
+    theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
+    labs(title = m, x = "day_group") +
+    my_theme
+})
+
+figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[2]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[3]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[4]],
+                    heights = c(1,1,1,1.4),
+                    labels = names(plots),
+                    ncol = 1,
+                    align = "v",
+                    common.legend = T,
+                    legend = "bottom")
+annotate_figure(figure, 
+                top = text_grob("Difference in immune cell abundance over time after infection", size = 16))
+
+
 
 
 

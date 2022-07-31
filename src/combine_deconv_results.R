@@ -119,3 +119,27 @@ save(nuns_results, file = "data/nuns_deconv.RData")
 load("data/variants_ischgl_deconv.RData")
 load("data/nuns_deconv.RData")
 
+
+
+### other additional info and renaming for plotting
+
+# rename day group groups in variants set
+variants_ischgl_results[, day_group := ifelse(day_group == "<= day 5", "day [0,5]",
+                                              ifelse(day_group == "<= day 10", "day [6,10]",
+                                                     ifelse(day_group == "<= day 15", "day [11,15]",
+                                                            ifelse(day_group == "<= day 30", "day [16,30]", "> day 30"))))]
+save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+
+
+
+# add controlled vocabulary (cv) for the (important) cell types
+variants_ischgl_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T cell CD4+",
+                                                 ifelse(cell_type == "T cells", "T cell CD4+",
+                                                 ifelse(cell_type == "CD8 T cells", "T cell CD8+",
+                                                 ifelse(startsWith(cell_type, "T cell CD8"), "T cell CD8+",
+                                                        ifelse(startsWith(cell_type, "B "), "B cell",
+                                                               ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
+                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type)))))))]
+save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+
+# TODO: add cv for nuns
