@@ -112,8 +112,8 @@ cibersortx_rel_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_results_re
 cibersortx_abs_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_results_absolute.csv")
 
 # melt for long data table
-cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
-cibersortx_abs_result <- melt(cibersortx_abs_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
+cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "value")
+cibersortx_abs_result <- melt(cibersortx_abs_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "value")
 
 # rename column "Mixture" to "sample"
 names(cibersortx_rel_result)[names(cibersortx_rel_result) == 'Mixture'] <- 'sample'
@@ -124,7 +124,7 @@ cibersortx_rel_result[, method := "cibersortx_rel"]
 cibersortx_abs_result[, method := "cibersortx_abs"]
 
 # bind cibersortx results to variants_ischgl results
-variants_ischgl_results <- rbindlist(c(variants_ischgl_results,  cibersortx_rel_result, cibersortx_abs_result))
+variants_ischgl_results <- rbindlist(list(variants_ischgl_results,  cibersortx_rel_result, cibersortx_abs_result), use.names = T)
 
 
 
@@ -133,8 +133,8 @@ cibersortx_rel_result <- fread("cibersortx/CIBERSORTx_nuns_results_relative.csv"
 cibersortx_abs_result <- fread("cibersortx/CIBERSORTx_nuns_results_absolute.csv")
 
 # melt for long data table
-cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
-cibersortx_abs_result <- melt(cibersortx_abs_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
+cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "value")
+cibersortx_abs_result <- melt(cibersortx_abs_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "value")
 
 # rename column "Mixture" to "sample"
 names(cibersortx_rel_result)[names(cibersortx_rel_result) == 'Mixture'] <- 'sample'
@@ -145,7 +145,7 @@ cibersortx_rel_result[, method := "cibersortx_rel"]
 cibersortx_abs_result[, method := "cibersortx_abs"]
 
 # bind cibersortx results to variants_ischgl results
-nuns_results <- rbindlist(c(nuns_results,  cibersortx_rel_result, cibersortx_abs_result))
+nuns_results <- rbindlist(list(nuns_results,  cibersortx_rel_result, cibersortx_abs_result), use.names = T)
 
 
 ################################################################################
@@ -163,8 +163,8 @@ nuns_results <- merge(nuns_results, full_metadata, by.x = "sample", by.y = "old_
                       all.x = T, allow.cartesian = T)
 
 # save the results as RData
-save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
-save(nuns_results, file = "data/nuns_deconv.RData")
+# save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+# save(nuns_results, file = "data/nuns_deconv.RData")
 
 # test loading
 load("data/variants_ischgl_deconv.RData")
@@ -179,35 +179,41 @@ variants_ischgl_results[, day_group := ifelse(day_group == "<= day 5", "day [0,5
                                               ifelse(day_group == "<= day 10", "day [6,10]",
                                                      ifelse(day_group == "<= day 15", "day [11,15]",
                                                             ifelse(day_group == "<= day 30", "day [16,30]", "> day 30"))))]
-save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+# save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
 
 
 
 # add controlled vocabulary (cv) for the (important) cell types
+variants_ischgl_results$cell_type <- as.character(variants_ischgl_results$cell_type)
 variants_ischgl_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T cell CD4+",
+                                                 ifelse(startsWith(cell_type, "T cells CD4"), "T cell CD4+",
                                                  ifelse(cell_type == "T cells", "T cell CD4+",
                                                  ifelse(startsWith(cell_type, "T cell regulatory"), "T cell CD4+",
+                                                        ifelse(startsWith(cell_type, "T cells regulatory"), "T cell CD4+",
                                                  ifelse(cell_type == "CD8 T cells", "T cell CD8+",
                                                  ifelse(startsWith(cell_type, "T cell CD8"), "T cell CD8+",
                                                         ifelse(startsWith(cell_type, "B "), "B cell",
                                                                ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
-                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))]
-save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))))]
+# save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
 
 
 # add cv for nuns
+nuns_results$cell_type <- as.character(nuns_results$cell_type)
 nuns_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T cell CD4+",
+                                      ifelse(startsWith(cell_type, "T cells CD4"), "T cell CD4+",
                                                  ifelse(cell_type == "T cells", "T cell CD4+",
                                                         ifelse(startsWith(cell_type, "T cell regulatory"), "T cell CD4+",
+                                                               ifelse(startsWith(cell_type, "T cells regulatory"), "T cell CD4+",
                                                                 ifelse(cell_type == "CD8 T cells", "T cell CD8+",
                                                                        ifelse(startsWith(cell_type, "T cell CD8"), "T cell CD8+",
                                                                               ifelse(startsWith(cell_type, "B "), "B cell",
                                                                                      ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
-                                                                                            ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))]
-save(nuns_results, file = "data/nuns_deconv.RData")
+                                                                                            ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))))]
+# save(nuns_results, file = "data/nuns_deconv.RData")
 
 
 # alternative day groups for nuns
-nuns_results[, day_group_2 := ifelse(num_day <= 6, "day 0",
+nuns_results[, day_group_2 := ifelse(num_day <= 6, "day [0,1]", # only day 0 for Naive
                                      ifelse(num_day <= 11, "day [7,11]", "> day 11"))]
-save(nuns_results, file = "data/nuns_deconv.RData")
+# save(nuns_results, file = "data/nuns_deconv.RData")
