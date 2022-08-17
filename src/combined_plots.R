@@ -54,7 +54,8 @@ conditional_figure <- ggarrange(conditional_plots[[1]],
                     common.legend = T,
                     legend = "bottom")
 annotate_figure(conditional_figure, 
-                top = text_grob("Differences in immune cell abundances between infected and healthy", size = 16))
+                top = text_grob("Differences in immune cell abundances between infected and healthy", size = 16),  
+                fig.lab = "A", fig.lab.size = 18, fig.lab.face = "bold")
 
 
 
@@ -158,7 +159,8 @@ figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text
                     common.legend = T,
                     legend = "bottom")
 annotate_figure(figure, 
-                top = text_grob("Difference in immune cell abundance over time after infection", size = 16))
+                top = text_grob("Difference in immune cell abundance over time after infection", size = 16),
+                fig.lab = "B", fig.lab.size = 18, fig.lab.face = "bold")
 
 
 
@@ -166,21 +168,52 @@ annotate_figure(figure,
 
 # time series nuns
 nuns_naive_time_plot_dt <- nuns_results[method %in% c("quantiseq", "epic", "mcp_counter", "xcell", "cibersort_abs") & group == "Naive"]
-nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
-nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
-nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
-nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]# variants_time_plot_dt$day_group <- factor(variants_time_plot_dt$day_group, levels = c("<= day 5", "<= day 10", "<= day 15", "<= day 30", "> day 30" ))
+# nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
+# nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
+# nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
+# nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]
+
+
 # nuns_naive_time_plot_dt[, day_group := ifelse(num_day <= 5, "<= day 5", 
 #                                               ifelse(num_day <= 11, "<= day 11",
 #                                                      ifelse(num_day <= 40, "<= day 40", "> day 40")))]
 # nuns_naive_time_plot_dt$day_group <- factor(nuns_naive_time_plot_dt$day_group, levels = c("<= day 5", "<= day 11", "<= day 40", "> day 40"))
+nuns_naive_time_plot_dt[, value := ifelse(method == "mcp_counter",  log(value), value)]
+nuns_naive_time_plot_dt[, value := ifelse(method == "xcell" & cv_cell_type == "Neutrophil", signif(value, digits = 2), value)]
 
 time_nuns_comparisons = list(c("<= day 11", "> day 11"))
-ggplot(nuns_naive_time_plot_dt,# [cell_type %in% c("Neutrophil", "B cell", "T cells")], 
-       aes(x = day_group, y = value)) +
+ggplot(nuns_naive_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
+       aes(x = factor(day_group_2, levels = c("day 0", "day [7,11]", "> day 11")), y = value)) +
   geom_boxplot() +
-  facet_grid(rows = vars(method), cols = vars(cell_type), scales = "free") +
+  geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
+  # facet_wrap(~cv_cell_type, ncol = 4, scales = "free") +
+  facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
   stat_compare_means(comparisons = time_nuns_comparisons) +
   labs(title = "Difference in immune cell abundance over time after vaccination") +
   my_theme
+
+plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
+  ggplot(nuns_naive_time_plot_dt[method == m & cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
+         aes(x = factor(day_group_2, levels = c("day 0", "day [7,11]", "> day 11")), y = value)) +
+    geom_boxplot() +
+    geom_smooth(aes(group=group), alpha = 0.3) +
+    facet_wrap(~cv_cell_type, ncol = 4, scales = "free") +
+    theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+    # facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
+    labs(title = m, x = "day_group", y = "value") +
+    my_theme
+})
+
+figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[2]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[3]],
+                    heights = c(1,1,1.4),
+                    labels = names(plots),
+                    ncol = 1,
+                    align = "v",
+                    common.legend = T,
+                    legend = "bottom")
+annotate_figure(figure, 
+                top = text_grob("Difference in immune cell abundance over time after vaccination", size = 16),
+                fig.lab = "C", fig.lab.size = 18, fig.lab.face = "bold")
 
