@@ -41,6 +41,7 @@ xcell_result[, method := "xcell"]
 epic_result[, method := "epic"]
 
 
+
 # combine and save results
 variants_ischgl_results <- rbindlist(list(
   quantiseq_result, 
@@ -89,6 +90,7 @@ nuns_results <- rbindlist(list(
 
 
 
+
 # melt data tables
 variants_ischgl_results <- melt(variants_ischgl_results, 
                                 id.vars = c("cell_type", "method"),
@@ -99,6 +101,55 @@ nuns_results <- melt(nuns_results,
                                 id.vars = c("cell_type", "method"),
                                 variable.name = "sample",
                                 value_name = "score")
+
+
+
+################################################################################
+### add cibersortx results (result generated at https://cibersortx.stanford.edu))
+
+## variants_ischgl
+cibersortx_rel_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_results_relative.csv")
+cibersortx_abs_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_results_absolute.csv")
+
+# melt for long data table
+cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
+cibersortx_abs_result <- melt(cibersortx_abs_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
+
+# rename column "Mixture" to "sample"
+names(cibersortx_rel_result)[names(cibersortx_rel_result) == 'Mixture'] <- 'sample'
+names(cibersortx_abs_result)[names(cibersortx_abs_result) == 'Mixture'] <- 'sample'
+
+# add method column
+cibersortx_rel_result[, method := "cibersortx_rel"]
+cibersortx_abs_result[, method := "cibersortx_abs"]
+
+# bind cibersortx results to variants_ischgl results
+variants_ischgl_results <- rbindlist(c(variants_ischgl_results,  cibersortx_rel_result, cibersortx_abs_result))
+
+
+
+## nuns
+cibersortx_rel_result <- fread("cibersortx/CIBERSORTx_nuns_results_relative.csv")
+cibersortx_abs_result <- fread("cibersortx/CIBERSORTx_nuns_results_absolute.csv")
+
+# melt for long data table
+cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
+cibersortx_abs_result <- melt(cibersortx_abs_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "score")
+
+# rename column "Mixture" to "sample"
+names(cibersortx_rel_result)[names(cibersortx_rel_result) == 'Mixture'] <- 'sample'
+names(cibersortx_abs_result)[names(cibersortx_abs_result) == 'Mixture'] <- 'sample'
+
+# add method column
+cibersortx_rel_result[, method := "cibersortx_rel"]
+cibersortx_abs_result[, method := "cibersortx_abs"]
+
+# bind cibersortx results to variants_ischgl results
+nuns_results <- rbindlist(c(nuns_results,  cibersortx_rel_result, cibersortx_abs_result))
+
+
+################################################################################
+
 
 # combine with metadata
 load(file = "data/all_pbmc_metadata.RData") # load metadata
