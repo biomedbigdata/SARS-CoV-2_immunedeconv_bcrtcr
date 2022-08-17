@@ -125,6 +125,7 @@ cibersortx_abs_result[, method := "cibersortx_abs"]
 
 # bind cibersortx results to variants_ischgl results
 variants_ischgl_results <- rbindlist(list(variants_ischgl_results,  cibersortx_rel_result, cibersortx_abs_result), use.names = T)
+variants_ischgl_results$value <- as.numeric(variants_ischgl_results$value)
 
 
 
@@ -146,7 +147,7 @@ cibersortx_abs_result[, method := "cibersortx_abs"]
 
 # bind cibersortx results to variants_ischgl results
 nuns_results <- rbindlist(list(nuns_results,  cibersortx_rel_result, cibersortx_abs_result), use.names = T)
-
+nuns_results$value <- as.numeric(nuns_results$value)
 
 ################################################################################
 
@@ -192,9 +193,10 @@ variants_ischgl_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell C
                                                         ifelse(startsWith(cell_type, "T cells regulatory"), "T cell CD4+",
                                                  ifelse(cell_type == "CD8 T cells", "T cell CD8+",
                                                  ifelse(startsWith(cell_type, "T cell CD8"), "T cell CD8+",
+                                                        ifelse(startsWith(cell_type, "T cells CD8"), "T cell CD8+",
                                                         ifelse(startsWith(cell_type, "B "), "B cell",
                                                                ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
-                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))))]
+                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type)))))))))))]
 # save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
 
 
@@ -207,9 +209,10 @@ nuns_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T ce
                                                                ifelse(startsWith(cell_type, "T cells regulatory"), "T cell CD4+",
                                                                 ifelse(cell_type == "CD8 T cells", "T cell CD8+",
                                                                        ifelse(startsWith(cell_type, "T cell CD8"), "T cell CD8+",
+                                                                              ifelse(startsWith(cell_type, "T cells CD8"), "T cell CD8+",
                                                                               ifelse(startsWith(cell_type, "B "), "B cell",
                                                                                      ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
-                                                                                            ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))))]
+                                                                                            ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type)))))))))))]
 # save(nuns_results, file = "data/nuns_deconv.RData")
 
 
@@ -217,3 +220,8 @@ nuns_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T ce
 nuns_results[, day_group_2 := ifelse(num_day <= 6, "day [0,1]", # only day 0 for Naive
                                      ifelse(num_day <= 11, "day [7,11]", "> day 11"))]
 # save(nuns_results, file = "data/nuns_deconv.RData")
+
+
+## save cibersortx results
+# save(variants_ischgl_results, file = "data/variants_ischgl_deconv_with_cibersortx.RData")
+# save(nuns_results, file = "data/nuns_deconv_with_cibersortx.RData")

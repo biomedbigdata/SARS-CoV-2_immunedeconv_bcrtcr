@@ -6,15 +6,21 @@ library(ggplot2)
 library(ggpubr)
 library(cowplot)
 
-load("data/variants_ischgl_deconv.RData")
-load("data/nuns_deconv.RData")
+# load("data/variants_ischgl_deconv.RData")
+# load("data/nuns_deconv.RData")
+load("data/variants_ischgl_deconv_with_cibersortx.RData")
+load("data/nuns_deconv_with_cibersortx.RData")
 
 my_theme <- theme(panel.background = element_rect(fill = "white", colour = "grey"),
                   panel.grid.major = element_line(colour = "lightgrey"),
                   panel.grid.minor = element_line(colour = "lightgrey"))
 
+
+
+deconv_methods <- c("quantiseq", "mcp_counter", "epic", "xcell", "cibersortx_abs", "cibersortx_rel")
+
 # conditional plot variants_ischgl
-conditional_plot_dt <- variants_ischgl_results[method %in% c("quantiseq", "mcp_counter", "epic", "xcell")]
+conditional_plot_dt <- variants_ischgl_results[method %in% deconv_methods]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -32,7 +38,7 @@ ggplot(conditional_plot_dt[cv_cell_type %in% c("B cell", "Neutrophil", "T cell C
   my_theme
 
 # variants conditional plots for each method combined to get free scales
-conditional_plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
+conditional_plots <- lapply(deconv_methods, function(m) {
   ggplot(conditional_plot_dt[method == m & cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
          aes(x = group, y = value, fill = group)) +
     geom_boxplot() + 
@@ -43,11 +49,14 @@ conditional_plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), f
     my_theme + theme(axis.title.x = element_blank(), axis.text.x = element_blank())
 })
 
+# !!! change number of conditional_plots and heights depending on number of methods used
 conditional_figure <- ggarrange(conditional_plots[[1]], 
                                 conditional_plots[[2]], 
                                 conditional_plots[[3]], 
                                 conditional_plots[[4]],
-                    heights = c(1,1,1,1),
+                                conditional_plots[[5]],
+                                conditional_plots[[6]],
+                    heights = c(1,1,1,1,1,1),
                     labels = names(conditional_plots),
                     ncol = 1,
                     align = "v",
@@ -71,7 +80,7 @@ annotate_figure(conditional_figure,
 
 
 # conditional plot nuns
-nuns_conditional_plot_dt <- nuns_results[method %in% c("quantiseq", "mcp_counter", "epic", "xcell")]
+nuns_conditional_plot_dt <- nuns_results[method %in% deconv_methods]
 nuns_conditional_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 nuns_conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 nuns_conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -97,7 +106,7 @@ ggplot(nuns_conditional_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cell
 #   my_theme
 
 # time series variants_ischgl --> exclude Gamma samples, use epic and mcp_counter as they are best for time series data and the cell types
-variants_time_plot_dt <- variants_ischgl_results[method %in% c("mcp_counter", "epic", "quantiseq", "xcell") & group != "Gamma"]
+variants_time_plot_dt <- variants_ischgl_results[method %in% deconv_methods & group != "Gamma"]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -137,7 +146,7 @@ ggplot(variants_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T cell
 
 
 # variants time plots for each method combined to get free scales
-plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
+plots <- lapply(deconv_methods, function(m) {
   ggplot(variants_time_plot_dt[method == m & cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
                   aes(x = factor(day_group, levels = c("day [0,5]", "day [6,10]", "day [11,15]", "day [16,30]", "> day 30")), y = value, color = group)) +
     geom_boxplot() + 
@@ -148,11 +157,14 @@ plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
     my_theme
 })
 
+# !!! change number of conditional_plots and heights depending on number of methods used
 figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
                     plots[[2]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
                     plots[[3]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
-                    plots[[4]],
-                    heights = c(1,1,1,1.4),
+                    plots[[4]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[5]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    plots[[6]],
+                    heights = c(1,1,1,1,1,1.4),
                     labels = names(plots),
                     ncol = 1,
                     align = "v",
@@ -167,7 +179,8 @@ annotate_figure(figure,
 
 
 # time series nuns
-nuns_naive_time_plot_dt <- nuns_results[method %in% c("quantiseq", "epic", "mcp_counter", "xcell", "cibersort_abs") & group == "Naive"]
+deconv_methods_nuns <- c("quantiseq", "epic", "mcp_counter", "cibersortx_abs", "cibersortx_rel")
+nuns_naive_time_plot_dt <- nuns_results[method %in% deconv_methods_nuns & group == "Naive"]
 # nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 # nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 # nuns_naive_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -180,8 +193,10 @@ nuns_naive_time_plot_dt <- nuns_results[method %in% c("quantiseq", "epic", "mcp_
 # nuns_naive_time_plot_dt$day_group <- factor(nuns_naive_time_plot_dt$day_group, levels = c("<= day 5", "<= day 11", "<= day 40", "> day 40"))
 nuns_naive_time_plot_dt[, value := ifelse(method == "mcp_counter",  log(value), value)]
 nuns_naive_time_plot_dt[, value := ifelse(method == "xcell" & cv_cell_type == "Neutrophil", signif(value, digits = 2), value)]
+# naive only have day 0 not day 1
+nuns_naive_time_plot_dt[, day_group_2 := ifelse(day_group_2 == "day [0,1]", "day 0", day_group_2)]
 
-time_nuns_comparisons = list(c("<= day 11", "> day 11"))
+
 ggplot(nuns_naive_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
        aes(x = factor(day_group_2, levels = c("day 0", "day [7,11]", "> day 11")), y = value)) +
   geom_boxplot() +
@@ -192,7 +207,7 @@ ggplot(nuns_naive_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T ce
   labs(title = "Difference in immune cell abundance over time after vaccination") +
   my_theme
 
-plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
+plots <- lapply(deconv_methods_nuns, function(m) {
   ggplot(nuns_naive_time_plot_dt[method == m & cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
          aes(x = factor(day_group_2, levels = c("day 0", "day [7,11]", "> day 11")), y = value)) +
     geom_boxplot() +
@@ -204,10 +219,13 @@ plots <- lapply(list("mcp_counter", "epic", "quantiseq", "xcell"), function(m) {
     my_theme
 })
 
+# !!! change number of conditional_plots and heights depending on number of methods used
 figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
                     plots[[2]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
-                    plots[[3]],
-                    heights = c(1,1,1.4),
+                    plots[[3]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+                    plots[[4]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+                    plots[[5]],
+                    heights = c(1,1,1,1,1.4),
                     labels = names(plots),
                     ncol = 1,
                     align = "v",
