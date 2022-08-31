@@ -225,3 +225,5 @@ nuns_results[, day_group_2 := ifelse(num_day <= 6, "day [0,1]", # only day 0 for
 ## save cibersortx results
 # save(variants_ischgl_results, file = "data/variants_ischgl_deconv_with_cibersortx.RData")
 # save(nuns_results, file = "data/nuns_deconv_with_cibersortx.RData")
+
+
