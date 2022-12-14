@@ -5,8 +5,8 @@ library(data.table)
 
 version <- "v0"
 
-expr <- fread("data/full_pbmcs_tpms.csv")
-gene_counts <- fread("data/full_pbmcs_geneCounts.csv")
+expr <- fread("data/variants_omicron_ischgl_pbmcs_tpms.csv")
+gene_counts <- fread("data/variants_omicron_ischgl_pbmcs_geneCounts.csv")
 batches_dt <- fread(paste0('data/batches/batches_', version, '.csv'))
 
 
