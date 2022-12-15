@@ -3,7 +3,7 @@
 library(sva)
 library(data.table)
 
-version <- "v0"
+version <- "v1"
 
 expr <- fread("data/variants_omicron_ischgl_pbmcs_tpms.csv")
 gene_counts <- fread("data/variants_omicron_ischgl_pbmcs_geneCounts.csv")
@@ -11,28 +11,32 @@ batches_dt <- fread(paste0('data/batches/batches_', version, '.csv'))
 
 
 # samples that failed QC or are excluded due to similar reasons to remove from batch sheet
-samples_to_drop_variants <- c('ID43_1st','B.1.351.ID5_3rd','B.1.351.ID1_3rd','ID29_2nd','ID34_2nd','ID38_3rd', 'ID53_2nd','BNT_Aus_20_2','ID38_2nd','ID38_3rd','ID38_1st')
-samples_to_drop_ischgl <- c('A_118_Asymptom', 'B_425_Seronegative','B_436_Seronegative','B_446_Seronegative')
-samples_to_drop_nuns <- c("BNT_Convalescent_4_Day7", "BNT_Convalescent_9_Day0", "BNT_Convalescent_9_Day1", "BNT_Convalescent_9_Day7", "BNT_Convalescent_13_Day0", "BNT_Convalescent_2_Day0", "BNT_Convalescent_3_Day0", "BNT_Naive_13_Day34", "BNT_Naive_13_Day41")
+# samples_to_drop_variants <- c('ID43_1st','B.1.351.ID5_3rd','B.1.351.ID1_3rd','ID29_2nd','ID34_2nd','ID38_3rd', 'ID53_2nd','BNT_Aus_20_2','ID38_2nd','ID38_3rd','ID38_1st')
+# samples_to_drop_omicron <- c("IDOm18_1st")
+# samples_to_drop_ischgl <- c('A_118_Asymptom', 'B_425_Seronegative','B_436_Seronegative','B_446_Seronegative')
+# samples_to_drop_nuns <- c("BNT_Convalescent_4_Day7", "BNT_Convalescent_9_Day0", "BNT_Convalescent_9_Day1", "BNT_Convalescent_9_Day7", "BNT_Convalescent_13_Day0", "BNT_Convalescent_2_Day0", "BNT_Convalescent_3_Day0", "BNT_Naive_13_Day34", "BNT_Naive_13_Day41")
 
 
 # get the correct current batches
-batches <- batches_dt[!old_id %in% c(samples_to_drop_ischgl, samples_to_drop_nuns, samples_to_drop_variants) , 
-                      batch]
+# batches_dt <- batches_dt[group %in% c("Seronegative", "Alpha", "Alpha_EK", "Gamma", "Omicron")]
+# batches_filtered <- batches_dt[!sample_id %in% c(samples_to_drop_ischgl, samples_to_drop_nuns, samples_to_drop_variants)]
 
 
 # remove gene id column
 gene_ids <- expr$gene_id
 expr <- expr[, -1]
 gene_counts <- gene_counts[, -1]
+# filter expr
+expr <- expr %>% select(batches_dt$sample_id)
+
 
 
 # create batch ids (match sample to batch)
-batchid <- match(batches, unique(batches)) 
+batchid <- match(batches_dt$batch, unique(batches_dt$batch)) 
 
 # create groups
 # groups <- sapply(colnames(expr), function(name) head(unlist(strsplit(name, '_')),1))
-groups <- meta$group
+groups <- batches_dt$group
 
 
 ## do the correction for tpms
