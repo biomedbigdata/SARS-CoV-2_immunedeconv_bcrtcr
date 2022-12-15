@@ -3,10 +3,10 @@
 #   1. computing immunedeconv results and combining results from different methods into one dt
 #   2. adding metadata to results
 
-load(file = "data/variants_ischgl_tpms_prepared.RData") # load file
+load(file = "data/variants_omicron_ischgl_tpms_prepared.RData") # load file
 load(file = "data/nuns_tpms_prepared.RData") # load file
 head(nuns_tpms)
-head(variants_ischgl_tpms)
+head(variants_omicron_ischgl_tpms)
 
 
 
@@ -16,22 +16,22 @@ set_cibersort_binary("src/cibersort/CIBERSORT.R")
 set_cibersort_mat("src/cibersort/LM22.txt")
 
 # quantiseq
-quantiseq_result <- as.data.table(immunedeconv::deconvolute(variants_ischgl_tpms, "quantiseq", tumor = FALSE))
+quantiseq_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "quantiseq", tumor = FALSE))
 
 # cibersort_abs
-cibersort_abs_result <- as.data.table(immunedeconv::deconvolute(variants_ischgl_tpms, "cibersort_abs", tumor = FALSE))
+cibersort_abs_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "cibersort_abs", tumor = FALSE))
 
 # mcp_counter
-mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(variants_ischgl_tpms) # somehow works only this way
+mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(variants_omicron_ischgl_tpms) # somehow works only this way
 cell_types <- rownames(mcp_counter_result)
 mcp_counter_result <- as.data.table(mcp_counter_result)
 mcp_counter_result[, cell_type := cell_types]
 
 # xcell
-xcell_result <- as.data.table(immunedeconv::deconvolute(variants_ischgl_tpms, "xcell", tumor = FALSE))
+xcell_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "xcell", tumor = FALSE))
 
 # epic
-epic_result <- as.data.table(immunedeconv::deconvolute(variants_ischgl_tpms, "epic", tumor = FALSE))
+epic_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "epic", tumor = FALSE))
 
 
 quantiseq_result[, method := "quantiseq"]
