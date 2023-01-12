@@ -60,8 +60,8 @@ dim(alpha_ek_samplesheet)
 # Todo: Time series data
 
 # first experiment
-omicron1_samplesheet <- fread("C://Users/User/LRZ Sync+Share/BA/metadata/omicron_1_meta.csv")
-omicron2_samplesheet <- fread("C://Users/User/LRZ Sync+Share/BA/metadata/omicron_2_meta.csv")
+omicron1_samplesheet <- fread("/nfs/data2/covid_hennighausen/omikron/_meta/SraRunTable.csv")
+omicron2_samplesheet <- fread("/nfs/data2/covid_hennighausen/omikron_new/_meta/SraRunTable.txt")
 
 table(omicron1_samplesheet$disease_state) # 47 Omicron, 8 Healthy
 table(omicron2_samplesheet$omicron_sublineage) # 32 BA.1, 23 BA.2, 1 --
@@ -69,7 +69,7 @@ table(omicron2_samplesheet$omicron_sublineage) # 32 BA.1, 23 BA.2, 1 --
 omicron_samplesheet <- rbindlist(list(omicron1_samplesheet, omicron2_samplesheet))
 omicron_samplesheet <- omicron_samplesheet[disease_state != "Healthy control"]
 
-omicron_samplesheet <- omicron_samplesheet[, .(`Sample Name`, omicron_sublineage, days_after_positive_pcr_results)]
+omicron_samplesheet <- omicron_samplesheet[, .(Run, `Sample Name`, omicron_sublineage, days_after_positive_pcr_results)]
 omicron_samplesheet[, Day := gsub("[^0-9]*", "", days_after_positive_pcr_results)]
 omicron_samplesheet$Day <- as.numeric(omicron_samplesheet$Day)
 
@@ -88,15 +88,26 @@ omicron_samplesheet[grepl("BA.2", omicron_sublineage, fixed = T) & Day > 30]
 
 
 # read mapping gsm to samplename
-omicron_mapping <- fread("C://Users/User/LRZ Sync+Share/BA/metadata/omicron_GSM_to_name.txt")
+omicron_mapping <- fread("data/omicron_GSM_to_name.txt")
 omicron_merge <- merge(omicron_samplesheet, omicron_mapping, by.x = "Sample Name", by.y = "GSM")
 omicron_merge <- separate(omicron_merge, Sample_name, c("Variant", "ID", "sampling"), sep = "_")
-omicron_merge <- unite(omicron_merge, "Sample", c(Variant, omicron_sublineage, ID), sep = "_")
+omicron_merge <- unite(omicron_merge, "Sample", c(Variant, omicron_sublineage, ID, sampling), sep = "_", remove = F)
 
-write.csv(omicron_merge[order(Sample, sampling), .(Sample, sampling, Day)], "C://Users/User/LRZ Sync+Share/BA/metadata/omicron_samplings.csv",
+write.csv(omicron_merge[order(Sample, sampling), .(Run, Sample, ID, sampling, Day)], "data/omicron_samplings.csv",
           row.names = F, quote = F)
 
 
+# add to full_metadata (all_pbmc_metadata.RData)
+omicron_metadata <- omicron_merge[order(Sample, sampling), .(Run, Sample, ID, omicron_sublineage, sampling, Day)] 
+colnames(omicron_metadata) <- c("old_id", "sample_id", "patient", "group", "sampling", "num_day")
+
+omicron_metadata[, infected := "infected"]
+omicron_metadata[, day_group := ifelse(num_day <= 11, "<= day 11", "> day 11")]
+
+load("data/all_pbmc_metadata.RData")
+
+full_metadata <- rbindlist(list(full_metadata[!group %in% c("BA.1", "BA.2")], omicron_metadata), use.names = T)
+save(full_metadata, file = "data/all_pbmc_metadata.RData")
 
 # Seronegative
 # 54 samples

@@ -3,8 +3,8 @@
 #   1. computing immunedeconv results and combining results from different methods into one dt
 #   2. adding metadata to results
 
-load(file = "data/batch_corrected/variants_omicron_ischgl_bc_prepared.RData") # load file
-variants_omicron_ischgl_tpms <- bc_tpms
+load(file = "data/batch_corrected/variants_omicron_ischgl_prepared.RData") # load file
+# variants_omicron_ischgl_tpms <- bc_tpms
 load(file = "data/nuns_tpms_prepared.RData") # load file
 head(nuns_tpms)
 head(variants_omicron_ischgl_tpms)

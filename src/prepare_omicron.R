@@ -43,20 +43,42 @@ omicron_gene_counts <- subset(omicron_gene_counts, select = -c(gene_id, gene_nam
 
 
 # renaming
-omicron_samples <- fread("data/omicron_samples.tsv")
-colnames(omicron_tpms) <- omicron_samples$ID
-colnames(omicron_gene_counts) <- omicron_samples$ID
+# metadata 
+load("data/all_pbmc_metadata.RData") # full_metadata
+
+colnames(omicron_tpms) <- sapply(colnames(omicron_tpms), function(srr){
+  raw_srr <- unlist(str_split(srr, "_")[1])
+  unique(full_metadata[old_id == raw_srr[1]]$sample_id)[1]
+})
+
+
 
 # remove Naive samples
-naive_samples <- omicron_samples[group == "Healthy"]$ID
-samples <- colnames(omicron_tpms)
-samples <- samples[!grepl("Naive", samples, fixed=T)]
-omicron_tpms <- omicron_tpms %>% select(all_of(samples))
-omicron_gene_counts <- omicron_gene_counts %>% select(all_of(samples))
+omicron_tpms <- omicron_tpms[!is.na(names(omicron_tpms))]
 
 
 # save prepared data frames
 save(omicron_tpms, omicron_gene_counts, file = "data/omicron_prepared.RData")
+
+
+# add second omicron study
+# load("data/variants_omicron_ischgl_tpms_prepared.RData")
+omicron2_tpms <- fread("/nfs/data2/covid_hennighausen/omikron_new/output/output/org_exbio_sradownloader_rnaSeq_NfCoreRnaSeq/output/results/star_salmon/salmon.merged.gene_tpm.tsv")
+
+
+omicron2_tpms <- as.data.frame(omicron2_tpms[!duplicated(gene_name),])
+rownames(omicron2_tpms) <- omicron2_tpms$gene_name
+omicron2_tpms <- subset(omicron2_tpms, select = -c(gene_id, gene_name))
+
+# metadata 
+load("data/all_pbmc_metadata.RData") # full_metadata
+
+# omicron2_meta <- fread("/nfs/data2/covid_hennighausen/omikron_new/_meta/SraRunTable.txt")
+
+colnames(omicron2_tpms) <- sapply(colnames(omicron2_tpms), function(srr){
+  unique(full_metadata[old_id == srr]$sample_id)[1]
+})
+
 
 
 
@@ -64,23 +86,21 @@ save(omicron_tpms, omicron_gene_counts, file = "data/omicron_prepared.RData")
 load(file = "data/variants_ischgl_tpms_prepared.RData") # load file
 load(file = "data/omicron_prepared.RData")
 
-variants_omicron_ischgl_tpms <- cbind(variants_ischgl_tpms, omicron_tpms)
+
+variants_ischgl_tpms
+
+variants_omicron_ischgl_tpms <- cbind(variants_ischgl_tpms, omicron_tpms, omicron2_tpms)
 save(variants_omicron_ischgl_tpms, file = "data/variants_omicron_ischgl_tpms_prepared.RData")
 
 
-# add second omicron study
-load("data/variants_omicron_ischgl_tpms_prepared.RData")
-omicron2_tpms <- fread("/nfs/data2/covid_hennighausen/omikron_new/output/output/org_exbio_sradownloader_rnaSeq_NfCoreRnaSeq/output/results/star_salmon/salmon.merged.gene_tpm.tsv")
-
-variants_omicron_ischgl_tpms
 
 
-omicron2_tpms <- as.data.frame(omicron2_tpms[!duplicated(gene_name),])
-rownames(omicron2_tpms) <- omicron2_tpms$gene_name
-omicron2_tpms <- subset(omicron2_tpms, select = -c(gene_id, gene_name))
 
-omicron2_meta <- fread("/nfs/data2/covid_hennighausen/omikron_new/_meta/SraRunTable.txt")
-omicron2_meta <- omicron2_meta[, .(Run, days_after_positive_pcr_results, omicron_sublineage)]
+
+
+
+
+
 
 ## prepare batch corrected tpms
 bc_tpms <- fread("data/batch_corrected/variants_omicron_ischgl_batch_corrected.csv")
