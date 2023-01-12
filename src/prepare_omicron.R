@@ -3,6 +3,7 @@
 library(data.table)
 library(tidyr)
 library(dplyr)
+library(stringr)
 
 ## prepare samplesheet
 omicron_samples <- fread("~/SARS-CoV-2_immunedeconv_bcrtcr/data/omikron_samplesheet.csv")
@@ -19,6 +20,9 @@ omicron_samples <- separate(omicron_samples,
 
 # renaming the groups
 omicron_samples[, group := ifelse(group == "COVID-19-Omicron", "Omicron-BA-1", "Healthy")]
+
+# create new IDs (BA1_#)
+omicron_samples <- omicron_samples %>% mutate(across("ID", str_replace, "Om", "BA1_"))
 
 # save 
 write.table(omicron_samples, file = "data/omicron_samples.tsv", quote = F, 
@@ -40,10 +44,11 @@ omicron_gene_counts <- subset(omicron_gene_counts, select = -c(gene_id, gene_nam
 
 # renaming
 omicron_samples <- fread("data/omicron_samples.tsv")
-colnames(omicron_tpms) <- paste0("ID", omicron_samples$ID)
-colnames(omicron_gene_counts) <- paste0("ID", omicron_samples$ID)
+colnames(omicron_tpms) <- omicron_samples$ID
+colnames(omicron_gene_counts) <- omicron_samples$ID
 
 # remove Naive samples
+naive_samples <- omicron_samples[group == "Healthy"]$ID
 samples <- colnames(omicron_tpms)
 samples <- samples[!grepl("Naive", samples, fixed=T)]
 omicron_tpms <- omicron_tpms %>% select(all_of(samples))
@@ -63,9 +68,16 @@ variants_omicron_ischgl_tpms <- cbind(variants_ischgl_tpms, omicron_tpms)
 save(variants_omicron_ischgl_tpms, file = "data/variants_omicron_ischgl_tpms_prepared.RData")
 
 
+# add second omicron study
+load("data/variants_omicron_ischgl_tpms_prepared.RData")
+omicron2_tpms <- fread("/nfs/data2/covid_hennighausen/omikron_new/output/output/org_exbio_sradownloader_rnaSeq_NfCoreRnaSeq/output/results/star_salmon/salmon.merged.gene_tpm.tsv")
 
+variants_omicron_ischgl_tpms
 
+omicron2_tpms <- as.data.frame(omicron2_tpms[!duplicated(gene_name),])
+rownames(omicron2_tpms) <- omicron2_tpms$gene_name
+omicron2_tpms <- subset(omicron2_tpms, select = -c(gene_id, gene_name))
 
-
-
+omicron2_meta <- fread("/nfs/data2/covid_hennighausen/omikron_new/_meta/SraRunTable.txt")
+omicron2_meta <- omicron2_meta[, .(Run, days_after_positive_pcr_results, omicron_sublineage)]
 
