@@ -3,7 +3,7 @@
 #   1. computing immunedeconv results and combining results from different methods into one dt
 #   2. adding metadata to results
 
-load(file = "data/batch_corrected/variants_omicron_ischgl_prepared.RData") # load file
+load(file = "data/variants_omicron_ischgl_tpms_prepared.RData") # load file
 # variants_omicron_ischgl_tpms <- bc_tpms
 load(file = "data/nuns_tpms_prepared.RData") # load file
 head(nuns_tpms)
@@ -157,12 +157,20 @@ nuns_results$value <- as.numeric(nuns_results$value)
 load(file = "data/all_pbmc_metadata.RData") # load metadata
 load(file = "data/alpha_gamma_sero_meta.RData") # load time series metadata for variants
 
-variants_omicron_ischgl_result <- merge(variants_omicron_ischgl_result, alpha_gamma_sero_meta,
+full_metadata[num_day == "infected"] # omicron -- sample --> will be excluded anyway
+full_metadata$num_day <- as.numeric(full_metadata$num_day)
+full_metadata[startsWith(group, "BA"), day_group := ifelse(num_day <= 5, "<= day 5",
+                                                           ifelse(num_day <= 10, "<= day 10",
+                                                                  ifelse(num_day <= 15, "<= day 15",
+                                                                         ifelse(num_day <= 30, "<= day 30",
+                                                                                "> day 30"))))]
+
+alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA")]), 
+                                      use.names = T, fill = T)
+
+variants_omicron_ischgl_result <- merge(variants_omicron_ischgl_result, alpha_gamma_om_sero_meta,
                                  by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
-# set the most important columns for omicron
-variants_omicron_ischgl_result[grepl("Om",sample)]$group <- "Omicron"
-variants_omicron_ischgl_result[grepl("Om",sample)]$sampling <- "1st"
-variants_omicron_ischgl_result[grepl("Om",sample)]$infected <- "Infected"
+
 
 nuns_results <- merge(nuns_results, full_metadata, by.x = "sample", by.y = "old_id", 
                       all.x = T, allow.cartesian = T)
@@ -201,6 +209,10 @@ variants_omicron_ischgl_result[, cv_cell_type := ifelse(startsWith(cell_type, "T
                                                         ifelse(startsWith(cell_type, "B "), "B cell",
                                                                ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
                                                                                  ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type)))))))))))]
+
+# exclude samples
+variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!(old_id %in% c("ID43_1st", "ID29_2nd", "ID34_2nd","ID38_1st", "ID38_2nd", "ID38_3rd", "ID53_2nd", "SRR18922948", "SRR18922909", "SRR18922902") |
+                                   sample %in% c("Seronegative_ID425_1st", "Seronegative_ID436_1st", "Seronegative_ID446_1st", "Omicron_--_107_1st"))]
 # save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
 
 

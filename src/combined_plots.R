@@ -7,7 +7,7 @@ library(ggpubr)
 library(cowplot)
 library(RColorBrewer)
 
-load("data/variants_omicron_ischgl_bc_deconv.RData")
+load("data/variants_omicron_ischgl_deconv.RData")
 load("data/nuns_deconv.RData")
 # load("data/variants_ischgl_deconv_with_cibersortx.RData")
 # load("data/nuns_deconv_with_cibersortx.RData")
@@ -25,7 +25,7 @@ my_theme <- theme(panel.background = element_rect(fill = "white", colour = "grey
                   text = element_text(size = 20),
                   plot.title = element_text(size = 20))
 
-variants_omicron_ischgl_colors <- list("alpha" = "#E31A1C", "alpha_ek" = "#F07F4E", "gamma" = "#A6CEE3", "omicron" = "#33A02C", "sero" = "#6A3D9A")
+variants_omicron_ischgl_colors <- list("alpha" = "#E31A1C", "alpha_ek" = "#F07F4E", "gamma" = "#A6CEE3", "ba1" = "#33A02C", "ba2" = "#6EDB32", "sero" = "#6A3D9A")
 
 deconv_methods <- c("quanTIseq", "MCPcounter", "EPIC", "xCell")
 
@@ -37,7 +37,9 @@ conditional_plot_dt <- variants_omicron_ischgl_result[method %in% deconv_methods
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]
 conditional_plot_dt[, value := ifelse(method == "MCPcounter", log(value), value)]
 
-conditional_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"), c("Gamma", "Seronegative"), c("Omicron", "Seronegative"))
+conditional_plot_dt$group <- factor(conditional_plot_dt$group, levels = c("Alpha", "Alpha_EK", "Gamma", "BA.1", "BA.2", "Seronegative"))
+
+conditional_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"), c("Gamma", "Seronegative"), c("BA.1", "Seronegative"), c("BA.2", "Seronegative"))
 
 ggplot(conditional_plot_dt[cv_cell_type %in% c("B cell", "Neutrophil", "T cell CD4+", "T cell CD8+")], 
        aes(x = group, y = value, fill = group)) +
@@ -56,7 +58,7 @@ conditional_plots <- lapply(deconv_methods, function(m) {
     facet_wrap(~cv_cell_type, ncol = 4, scales = "free_y") +
     stat_compare_means(comparisons = conditional_variants_comparisons, vjust = 1.2) +
     theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
-    scale_fill_manual(values = c(variants_omicron_ischgl_colors[["alpha"]], variants_omicron_ischgl_colors[["alpha_ek"]], variants_omicron_ischgl_colors[["gamma"]], variants_omicron_ischgl_colors[["omicron"]], variants_omicron_ischgl_colors[["sero"]])) +
+    scale_fill_manual(values = c(variants_omicron_ischgl_colors[["alpha"]], variants_omicron_ischgl_colors[["alpha_ek"]],  variants_omicron_ischgl_colors[["gamma"]],variants_omicron_ischgl_colors[["ba1"]], variants_omicron_ischgl_colors[["ba2"]], variants_omicron_ischgl_colors[["sero"]])) +
     labs(title = m, x = "group") +
     my_theme + theme(axis.title.x = element_blank(), axis.text.x = element_blank())
 })
@@ -122,6 +124,9 @@ variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]# variants_time_plot_dt$day_group <- factor(variants_time_plot_dt$day_group, levels = c("<= day 5", "<= day 10", "<= day 15", "<= day 30", "> day 30" ))
 
+
+variants_time_plot_dt$group <- factor(variants_time_plot_dt$group, levels = c("Alpha", "Alpha_EK", "Gamma", "BA.1", "BA.2", "Seronegative"))
+
 # time_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"))
 # ggplot(variants_time_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cells")], 
 #        aes(x = group, y = value, fill = group)) +
@@ -162,7 +167,7 @@ plots <- lapply(deconv_methods, function(m) {
     geom_boxplot() + 
     geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
     facet_wrap(~cv_cell_type, ncol = 4, scales = "free") +
-    scale_color_manual(values = c(variants_omicron_ischgl_colors[["alpha"]], variants_omicron_ischgl_colors[["alpha_ek"]], variants_omicron_ischgl_colors[["sero"]])) +
+    scale_color_manual(values = c(variants_omicron_ischgl_colors[["alpha"]], variants_omicron_ischgl_colors[["alpha_ek"]], variants_omicron_ischgl_colors[["ba1"]], variants_omicron_ischgl_colors[["ba2"]], variants_omicron_ischgl_colors[["sero"]])) +
     theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
     labs(title = m, x = "day_group") +
     my_theme
