@@ -74,10 +74,30 @@ omicron2_tpms <- fread("/nfs/data2/covid_hennighausen/omikron_new/output/output/
 
 variants_omicron_ischgl_tpms
 
+
 omicron2_tpms <- as.data.frame(omicron2_tpms[!duplicated(gene_name),])
 rownames(omicron2_tpms) <- omicron2_tpms$gene_name
 omicron2_tpms <- subset(omicron2_tpms, select = -c(gene_id, gene_name))
 
 omicron2_meta <- fread("/nfs/data2/covid_hennighausen/omikron_new/_meta/SraRunTable.txt")
 omicron2_meta <- omicron2_meta[, .(Run, days_after_positive_pcr_results, omicron_sublineage)]
+
+## prepare batch corrected tpms
+bc_tpms <- fread("data/batch_corrected/variants_omicron_ischgl_batch_corrected.csv")
+samples <- colnames(bc_tpms)
+new_colnames <- c("gene_id",samples[1:178])
+bc_tpms <- bc_tpms[, c(2, 4:181)]
+colnames(bc_tpms) <- new_colnames
+
+# for gene names
+omicron_raw_tpms <- fread("data/omikron_tpms.tsv")
+bc_tpms$gene_name <- omicron_raw_tpms$gene_name
+
+# remove duplicated gene names
+bc_tpms <- as.data.frame(bc_tpms[!duplicated(gene_name),])
+rownames(bc_tpms) <- bc_tpms$gene_name
+bc_tpms <- subset(bc_tpms, select = -c(gene_id, gene_name))
+
+# save prepared data
+save(bc_tpms, file="data/batch_corrected/variants_omicron_ischgl_bc_prepared.RData")
 

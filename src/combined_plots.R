@@ -7,14 +7,14 @@ library(ggpubr)
 library(cowplot)
 library(RColorBrewer)
 
-load("data/variants_ischgl_deconv.RData")
+load("data/variants_omicron_ischgl_bc_deconv.RData")
 load("data/nuns_deconv.RData")
 # load("data/variants_ischgl_deconv_with_cibersortx.RData")
 # load("data/nuns_deconv_with_cibersortx.RData")
 
 
 # new deconv names 
-variants_ischgl_results[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCPcounter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
+variants_omicron_ischgl_result[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCPcounter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
 nuns_results[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCPcounter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
 
 
@@ -25,19 +25,20 @@ my_theme <- theme(panel.background = element_rect(fill = "white", colour = "grey
                   text = element_text(size = 20),
                   plot.title = element_text(size = 20))
 
-variants_ischgl_colors <- list("alpha" = "#E31A1C", "alpha_ek" = "#33A02C", "gamma" = "#A6CEE3", "sero" = "#6A3D9A")
+variants_omicron_ischgl_colors <- list("alpha" = "#E31A1C", "alpha_ek" = "#F07F4E", "gamma" = "#A6CEE3", "omicron" = "#33A02C", "sero" = "#6A3D9A")
 
 deconv_methods <- c("quanTIseq", "MCPcounter", "EPIC", "xCell")
 
 # conditional plot variants_ischgl
-conditional_plot_dt <- variants_ischgl_results[method %in% deconv_methods]
+conditional_plot_dt <- variants_omicron_ischgl_result[method %in% deconv_methods]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]
 conditional_plot_dt[, value := ifelse(method == "MCPcounter", log(value), value)]
 
-conditional_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"), c("Gamma", "Seronegative"))
+conditional_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"), c("Gamma", "Seronegative"), c("Omicron", "Seronegative"))
+
 ggplot(conditional_plot_dt[cv_cell_type %in% c("B cell", "Neutrophil", "T cell CD4+", "T cell CD8+")], 
        aes(x = group, y = value, fill = group)) +
   geom_boxplot() +
@@ -55,7 +56,7 @@ conditional_plots <- lapply(deconv_methods, function(m) {
     facet_wrap(~cv_cell_type, ncol = 4, scales = "free_y") +
     stat_compare_means(comparisons = conditional_variants_comparisons, vjust = 1.2) +
     theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
-    scale_fill_manual(values = c(variants_ischgl_colors[["alpha"]], variants_ischgl_colors[["alpha_ek"]], variants_ischgl_colors[["gamma"]], variants_ischgl_colors[["sero"]])) +
+    scale_fill_manual(values = c(variants_omicron_ischgl_colors[["alpha"]], variants_omicron_ischgl_colors[["alpha_ek"]], variants_omicron_ischgl_colors[["gamma"]], variants_omicron_ischgl_colors[["omicron"]], variants_omicron_ischgl_colors[["sero"]])) +
     labs(title = m, x = "group") +
     my_theme + theme(axis.title.x = element_blank(), axis.text.x = element_blank())
 })
@@ -115,7 +116,7 @@ ggplot(nuns_conditional_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cell
 #   my_theme
 
 # time series variants_ischgl --> exclude Gamma samples, use EPIC and MCPcounter as they are best for time series data and the cell types
-variants_time_plot_dt <- variants_ischgl_results[method %in% deconv_methods & group != "Gamma"]
+variants_time_plot_dt <- variants_omicron_ischgl_result[method %in% deconv_methods & group != "Gamma"]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -161,7 +162,7 @@ plots <- lapply(deconv_methods, function(m) {
     geom_boxplot() + 
     geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
     facet_wrap(~cv_cell_type, ncol = 4, scales = "free") +
-    scale_color_manual(values = c(variants_ischgl_colors[["alpha"]], variants_ischgl_colors[["alpha_ek"]], variants_ischgl_colors[["sero"]])) +
+    scale_color_manual(values = c(variants_omicron_ischgl_colors[["alpha"]], variants_omicron_ischgl_colors[["alpha_ek"]], variants_omicron_ischgl_colors[["sero"]])) +
     theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
     labs(title = m, x = "day_group") +
     my_theme
