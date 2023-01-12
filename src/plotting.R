@@ -234,7 +234,7 @@ create_time_boxplot_nuns <- function(method, dir, color = "group", reference = "
 }
 
 
-# create a boxplot for a method withx = cell types, y = scores coloured by group
+# create a boxplot for a method with x = cell types, y = scores coloured by group
 create_boxplot <- function(method, dir, reference = ".all."){
   # create a new dir for result plots if it does not exist yet
   dir.create(file.path(dir))

@@ -65,7 +65,24 @@ save(variants_omicron_ischgl_tpms, file = "data/variants_omicron_ischgl_tpms_pre
 
 
 
+## prepare batch corrected tpms
+bc_tpms <- fread("data/batch_corrected/variants_omicron_ischgl_batch_corrected.csv")
+samples <- colnames(bc_tpms)
+new_colnames <- c("gene_id",samples[1:178])
+bc_tpms <- bc_tpms[, c(2, 4:181)]
+colnames(bc_tpms) <- new_colnames
 
+# for gene names
+omicron_raw_tpms <- fread("data/omikron_tpms.tsv")
+bc_tpms$gene_name <- omicron_raw_tpms$gene_name
+
+# remove duplicated gene names
+bc_tpms <- as.data.frame(bc_tpms[!duplicated(gene_name),])
+rownames(bc_tpms) <- bc_tpms$gene_name
+bc_tpms <- subset(bc_tpms, select = -c(gene_id, gene_name))
+
+# save prepared data
+save(bc_tpms, file="data/batch_corrected/variants_omicron_ischgl_bc_prepared.RData")
 
 
 

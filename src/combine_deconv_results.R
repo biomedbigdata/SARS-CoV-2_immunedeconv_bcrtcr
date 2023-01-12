@@ -3,7 +3,8 @@
 #   1. computing immunedeconv results and combining results from different methods into one dt
 #   2. adding metadata to results
 
-load(file = "data/variants_omicron_ischgl_tpms_prepared.RData") # load file
+load(file = "data/batch_corrected/variants_omicron_ischgl_bc_prepared.RData") # load file
+variants_omicron_ischgl_tpms <- bc_tpms
 load(file = "data/nuns_tpms_prepared.RData") # load file
 head(nuns_tpms)
 head(variants_omicron_ischgl_tpms)
@@ -43,9 +44,9 @@ epic_result[, method := "epic"]
 
 
 # combine and save results
-variants_ischgl_results <- rbindlist(list(
+variants_omicron_ischgl_result <- rbindlist(list(
   quantiseq_result, 
-  cibersort_abs_result,
+  # cibersort_abs_result,
   mcp_counter_result,
   xcell_result,
   epic_result
@@ -92,7 +93,7 @@ nuns_results <- rbindlist(list(
 
 
 # melt data tables
-variants_ischgl_results <- melt(variants_ischgl_results, 
+variants_omicron_ischgl_result <- melt(variants_omicron_ischgl_result, 
                                 id.vars = c("cell_type", "method"),
                                 variable.name = "sample",
                                 value_name = "score")
@@ -108,8 +109,8 @@ nuns_results <- melt(nuns_results,
 ### add cibersortx results (result generated at https://cibersortx.stanford.edu))
 
 ## variants_ischgl
-cibersortx_rel_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_results_relative.csv")
-cibersortx_abs_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_results_absolute.csv")
+cibersortx_rel_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_result_relative.csv")
+cibersortx_abs_result <- fread("cibersortx/CIBERSORTx_variants_ischgl_result_absolute.csv")
 
 # melt for long data table
 cibersortx_rel_result <- melt(cibersortx_rel_result, id.vars = c("Mixture"), variable.name = "cell_type", value.name = "value")
@@ -124,8 +125,8 @@ cibersortx_rel_result[, method := "cibersortx_rel"]
 cibersortx_abs_result[, method := "cibersortx_abs"]
 
 # bind cibersortx results to variants_ischgl results
-variants_ischgl_results <- rbindlist(list(variants_ischgl_results,  cibersortx_rel_result, cibersortx_abs_result), use.names = T)
-variants_ischgl_results$value <- as.numeric(variants_ischgl_results$value)
+variants_omicron_ischgl_result <- rbindlist(list(variants_omicron_ischgl_result,  cibersortx_rel_result, cibersortx_abs_result), use.names = T)
+variants_omicron_ischgl_result$value <- as.numeric(variants_omicron_ischgl_result$value)
 
 
 
@@ -156,15 +157,18 @@ nuns_results$value <- as.numeric(nuns_results$value)
 load(file = "data/all_pbmc_metadata.RData") # load metadata
 load(file = "data/alpha_gamma_sero_meta.RData") # load time series metadata for variants
 
-variants_ischgl_results <- merge(variants_ischgl_results, alpha_gamma_sero_meta,
+variants_omicron_ischgl_result <- merge(variants_omicron_ischgl_result, alpha_gamma_sero_meta,
                                  by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
-
+# set the most important columns for omicron
+variants_omicron_ischgl_result[grepl("Om",sample)]$group <- "Omicron"
+variants_omicron_ischgl_result[grepl("Om",sample)]$sampling <- "1st"
+variants_omicron_ischgl_result[grepl("Om",sample)]$infected <- "Infected"
 
 nuns_results <- merge(nuns_results, full_metadata, by.x = "sample", by.y = "old_id", 
                       all.x = T, allow.cartesian = T)
 
 # save the results as RData
-# save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+# save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
 # save(nuns_results, file = "data/nuns_deconv.RData")
 
 # test loading
@@ -176,17 +180,17 @@ load("data/nuns_deconv.RData")
 ### other additional info and renaming for plotting
 
 # rename day group groups in variants set
-variants_ischgl_results[, day_group := ifelse(day_group == "<= day 5", "day [0,5]",
+variants_omicron_ischgl_result[, day_group := ifelse(day_group == "<= day 5", "day [0,5]",
                                               ifelse(day_group == "<= day 10", "day [6,10]",
                                                      ifelse(day_group == "<= day 15", "day [11,15]",
                                                             ifelse(day_group == "<= day 30", "day [16,30]", "> day 30"))))]
-# save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+# save(variants_omicron_ischgl_result, file = "data/variants_ischgl_deconv.RData")
 
 
 
 # add controlled vocabulary (cv) for the (important) cell types
-variants_ischgl_results$cell_type <- as.character(variants_ischgl_results$cell_type)
-variants_ischgl_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T cell CD4+",
+variants_omicron_ischgl_result$cell_type <- as.character(variants_omicron_ischgl_result$cell_type)
+variants_omicron_ischgl_result[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T cell CD4+",
                                                  ifelse(startsWith(cell_type, "T cells CD4"), "T cell CD4+",
                                                  ifelse(cell_type == "T cells", "T cell CD4+",
                                                  ifelse(startsWith(cell_type, "T cell regulatory"), "T cell CD4+",
@@ -197,7 +201,7 @@ variants_ischgl_results[, cv_cell_type := ifelse(startsWith(cell_type, "T cell C
                                                         ifelse(startsWith(cell_type, "B "), "B cell",
                                                                ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
                                                                                  ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type)))))))))))]
-# save(variants_ischgl_results, file = "data/variants_ischgl_deconv.RData")
+# save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
 
 
 # add cv for nuns
@@ -223,7 +227,7 @@ nuns_results[, day_group_2 := ifelse(num_day <= 6, "day [0,1]", # only day 0 for
 
 
 ## save cibersortx results
-# save(variants_ischgl_results, file = "data/variants_ischgl_deconv_with_cibersortx.RData")
+# save(variants_omicron_ischgl_result, file = "data/variants_ischgl_deconv_with_cibersortx.RData")
 # save(nuns_results, file = "data/nuns_deconv_with_cibersortx.RData")
 
 
