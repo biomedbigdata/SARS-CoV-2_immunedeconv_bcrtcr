@@ -87,11 +87,25 @@ omicron_samplesheet[grepl("BA.2", omicron_sublineage, fixed = T) & Day %in% c(16
 omicron_samplesheet[grepl("BA.2", omicron_sublineage, fixed = T) & Day > 30]
 
 
+
 # read mapping gsm to samplename
 omicron_mapping <- fread("data/omicron_GSM_to_name.txt")
 omicron_merge <- merge(omicron_samplesheet, omicron_mapping, by.x = "Sample Name", by.y = "GSM")
 omicron_merge <- separate(omicron_merge, Sample_name, c("Variant", "ID", "sampling"), sep = "_")
 omicron_merge <- unite(omicron_merge, "Sample", c(Variant, omicron_sublineage, ID, sampling), sep = "_", remove = F)
+
+# number of samples for each category
+omicron_merge["BA.1" == omicron_sublineage & sampling == "1st"]
+omicron_merge["BA.1" == omicron_sublineage & sampling == "2nd"]
+omicron_merge["BA.2" == omicron_sublineage & sampling == "1st"]
+omicron_merge["BA.2" == omicron_sublineage & sampling == "2nd"]
+
+# for range and mean
+summary(omicron_merge["BA.1" == omicron_sublineage & sampling == "1st"]$Day)
+summary(omicron_merge["BA.1" == omicron_sublineage & sampling == "2nd"]$Day)
+summary(omicron_merge["BA.2" == omicron_sublineage & sampling == "1st"]$Day)
+summary(omicron_merge["BA.2" == omicron_sublineage & sampling == "2nd"]$Day)
+
 
 write.csv(omicron_merge[order(Sample, sampling), .(Run, Sample, ID, sampling, Day)], "data/omicron_samplings.csv",
           row.names = F, quote = F)
@@ -151,3 +165,7 @@ gamma_samplesheet_melt <- gamma_samplesheet_melt[!is.na(Day)]
 gamma_samplesheet_unite <- unite(gamma_samplesheet_melt, "Sample", c(Variant, ID), sep = "_")
 write.csv(gamma_samplesheet_unite[order(Sample, sampling)], "C://Users/User/LRZ Sync+Share/BA/metadata/gamma_samplings.csv",
           row.names = F, quote = F)
+
+
+
+# TODO: combine days and create new full metadata with correct time data for ALpha, Gamma
