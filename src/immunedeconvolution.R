@@ -100,6 +100,8 @@ load(file = "data/alpha_gamma_time_meta.RData") # load time series metadata for 
 head(nuns_tpms)
 head(variants_ischgl_tpms)
 
+tpms <- downsampled_M10_tpms
+
 
 ## choose which dataset to use
 dataset <- "nuns"  # choose one of "nuns", "nuns_naive", "nuns_convalescent", "variants_ischgl"
@@ -146,7 +148,7 @@ epic_result <- immunedeconv::deconvolute(tpms, "epic", tumor = FALSE)
 
 color_by_sampling = F # parameter whether to color by group (F) or by sampling (T) (for nuns color sampling == by day)
 
-result_plotting_dir <- "plots/nuns/naive_by_day/boxplots/"
+result_plotting_dir <- "plots/M10/"
 dir.create(file.path(result_plotting_dir))
 
 

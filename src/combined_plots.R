@@ -7,7 +7,7 @@ library(ggpubr)
 library(cowplot)
 library(RColorBrewer)
 
-load("data/variants_omicron_ischgl_deconv.RData")
+load("data/m10_variants_omicron_ischgl_deconv.RData")
 load("data/nuns_deconv.RData")
 # load("data/variants_ischgl_deconv_with_cibersortx.RData")
 # load("data/nuns_deconv_with_cibersortx.RData")
@@ -25,7 +25,7 @@ my_theme <- theme(panel.background = element_rect(fill = "white", colour = "grey
                   text = element_text(size = 20),
                   plot.title = element_text(size = 20))
 
-variants_omicron_ischgl_colors <- list("alpha" = "#E31A1C", "alpha_ek" = "#F07F4E", "gamma" = "#A6CEE3", "ba1" = "#33A02C", "ba2" = "#6EDB32", "sero" = "#6A3D9A")
+variants_omicron_ischgl_colors <- list("alpha" = "#E31A1C", "alpha_ek" = "#FF7F00", "gamma" = "#A6CEE3", "ba1" = "#33A02C", "ba2" = "#B2DF8A", "sero" = "#6A3D9A")
 
 deconv_methods <- c("quanTIseq", "MCPcounter", "EPIC", "xCell")
 
@@ -75,7 +75,7 @@ conditional_figure <- ggarrange(conditional_plots[[1]],
                     common.legend = T,
                     legend = "bottom")
 annotate_figure(conditional_figure, 
-                top = text_grob("Differences in immune cell abundances between infected and healthy", size = 22),  
+                top = text_grob("Differences in immune cell abundances between infected and healthy (sequencing depth 10 M)", size = 22),  
                 fig.lab = "A", fig.lab.size = 22, fig.lab.face = "bold")
 
 
@@ -185,7 +185,7 @@ figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text
                     common.legend = T,
                     legend = "bottom")
 annotate_figure(figure, 
-                top = text_grob("Difference in immune cell abundance over time after infection", size = 22),
+                top = text_grob("Difference in immune cell abundance over time after infection (sequencing depth 10 M)", size = 22),
                 fig.lab = "B", fig.lab.size = 22, fig.lab.face = "bold")
 
 

@@ -176,7 +176,7 @@ nuns_results <- merge(nuns_results, full_metadata, by.x = "sample", by.y = "old_
                       all.x = T, allow.cartesian = T)
 
 # save the results as RData
-# save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
+# save(variants_omicron_ischgl_result, file = "data/m10_variants_omicron_ischgl_deconv.RData")
 # save(nuns_results, file = "data/nuns_deconv.RData")
 
 # test loading
@@ -213,7 +213,7 @@ variants_omicron_ischgl_result[, cv_cell_type := ifelse(startsWith(cell_type, "T
 # exclude samples
 variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!(old_id %in% c("ID43_1st", "ID29_2nd", "ID34_2nd","ID38_1st", "ID38_2nd", "ID38_3rd", "ID53_2nd", "SRR18922948", "SRR18922909", "SRR18922902") |
                                    sample %in% c("Seronegative_ID425_1st", "Seronegative_ID436_1st", "Seronegative_ID446_1st", "Omicron_--_107_1st"))]
-# save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
+# save(variants_omicron_ischgl_result, file = "data/m10_variants_omicron_ischgl_deconv.RData")
 
 
 # add cv for nuns
