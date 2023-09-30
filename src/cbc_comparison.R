@@ -83,26 +83,64 @@ cbc_deconv <- merge(cbc_alpha_full[, .(Sample_ID, cbc_cell_type, percentage_h, p
 
 cell_types_comp <- c("Neutrophil", "Lymphocyte", "Monocyte")
 
-cor_df <- rbindlist(lapply(deconv_methods, function(m){
+# cor_df <- rbindlist(lapply(deconv_methods, function(m){
+#   rbindlist(lapply(cell_types_comp, function(c){
+#     cor_res <- cor(cbc_deconv[method == m & cbc_cell_type == c, .(percentage_h, `1st`)], method = "spearman")
+#     print(cor_res)
+#     data.frame(method = m,
+#                cell_type = c,
+#                correlation = cor_res)
+#   }))
+# }))
+
+#cor.test(~ percentage_h + `1st`, cbc_deconv[method == "EPIC" & cbc_cell_type == "Neutrophil"],
+ #                   method = "spearman")
+
+# cbc_deconv[method == "EPIC" & cbc_cell_type == "Neutrophil"]
+
+# together
+cbc_deconv_melt <- melt(cbc_deconv, 
+                        measure.vars = c("percentage_h", "percentage_d"), 
+                        variable.name = "cbc_time_point", value.name = "percentage")
+
+cbc_deconv_melt <- melt(cbc_deconv_melt, 
+                        measure.vars = c("1st", "2nd"), 
+                        variable.name = "deconv_time_point", value.name = "estimate")
+
+cbc_deconv_melt <- cbc_deconv_melt[(cbc_time_point == "percentage_h" & deconv_time_point == "1st") | (cbc_time_point == "percentage_d" & deconv_time_point == "2nd")]
+
+cbc_deconv_melt[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
+
+cbc_deconv_melt$shape <- as.factor(cbc_deconv_melt$group)
+ggplot(cbc_deconv_melt, aes(x = percentage, y = estimate, color = cbc_cell_type)) + 
+  geom_point() + 
+  scale_color_brewer(palette = "Dark2") +
+  geom_smooth(method = "lm") +
+  facet_wrap(~method, scales = "free") +
+  labs(title = "CBC data and deconvolution estimates correlation (sequencing depth 10 million)",
+       x = "CBC percentage", y = "Deconvolution estimate",
+       color = "Cell type")
+
+
+cor_df <- rbindlist(lapply(c("epic", "mcp_counter", "quantiseq", "xcell"), function(m){
   rbindlist(lapply(cell_types_comp, function(c){
-    cor_res <- cor(cbc_deconv[method == "EPIC" & cbc_cell_type == "Neutrophil", .(percentage_h, `1st`)], method = "spearman")
+    print(paste(m, c))
+    cor_res <- cor.test(cbc_deconv_melt[method == m & cbc_cell_type == c]$percentage, cbc_deconv_melt[method == m & cbc_cell_type == c]$estimate, method = "spearman")
     print(cor_res)
     data.frame(method = m,
                cell_type = c,
-               correlation = cor_res)
+               p_value = cor_res$p.value,
+               estimate = cor_res$estimate)
   }))
 }))
 
-cor.test(~ percentage_h + `1st`, cbc_deconv[method == "EPIC" & cbc_cell_type == "Neutrophil"],
-                    method = "spearman")
-
-cbc_deconv[method == "EPIC" & cbc_cell_type == "Neutrophil"]
+cor.test(cbc_deconv_melt$percentage, cbc_deconv_melt$estimate, metod = "spearman")
 
 
 
 ### scatter plot to visualize correlation
 # hospitalized / "first" samples
-ggplot(cbc_deconv, aes(x = percentage_h, y = `1st`, color = cbc_cell_type)) + 
+ggplot(cbc_deconv, aes(x = percentage_h, y = `1st`, color = cbc_cell_type, shape = group)) + 
   geom_point() + 
   geom_smooth(method = "lm") +
   facet_wrap(~method, scales = "free") +
@@ -118,21 +156,7 @@ ggplot(cbc_deconv, aes(x = percentage_d, y = `2nd`, color = cbc_cell_type)) +
   labs(title = "Correlation between CBC data and deconvolution estimates for discharged samples",
        x = "CBC percentage", y = "deconvolution estimate")
 
-# together
-cbc_deconv_melt <- melt(cbc_deconv, 
-                        measure.vars = c("percentage_h", "percentage_d"), 
-                        variable.name = "cbc_time_point", value.name = "percentage")
-
-cbc_deconv_melt <- melt(cbc_deconv_melt, 
-                        measure.vars = c("1st", "2nd"), 
-                        variable.name = "deconv_time_point", value.name = "estimate")
-
-cbc_deconv_melt <- cbc_deconv_melt[(cbc_time_point == "percentage_h" & deconv_time_point == "1st") | (cbc_time_point == "percentage_d" & deconv_time_point == "2nd")]
 
 
-ggplot(cbc_deconv_melt, aes(x = percentage, y = estimate, color = cbc_cell_type)) + 
-  geom_point() + 
-  geom_smooth(method = "lm") +
-  facet_wrap(~method, scales = "free") +
-  labs(title = "Correlation between CBC data and deconvolution estimates for all samples",
-       x = "CBC percentage", y = "deconvolution estimate")
+test <- cor.test(cbc_deconv_melt$percentage, cbc_deconv_melt$estimate, method = "spearman")
+test$estimate

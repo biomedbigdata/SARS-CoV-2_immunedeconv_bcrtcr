@@ -32,7 +32,7 @@ tpms <- assays(rds_obj)$abundance
 # if (!require("BiocManager", quietly = TRUE))
 #   install.packages("BiocManager")
 # 
-# BiocManager::install("EnsDb.Hsapiens.v75")
+BiocManager::install("EnsDb.Hsapiens.v75")
 
 library(EnsDb.Hsapiens.v75)
 edb <- EnsDb.Hsapiens.v75
@@ -100,7 +100,7 @@ load(file = "data/alpha_gamma_time_meta.RData") # load time series metadata for 
 head(nuns_tpms)
 head(variants_ischgl_tpms)
 
-tpms <- downsampled_M10_tpms
+tpms <- tpms_10m
 
 
 ## choose which dataset to use

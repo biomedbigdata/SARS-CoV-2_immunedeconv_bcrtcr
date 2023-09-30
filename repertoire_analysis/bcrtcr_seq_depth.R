@@ -17,10 +17,12 @@ library(seqinr)
 groups <- c("alpha", "alpha_ek", "omicron_ba1", "omicron_ba2", "sero")
 groups_short <- c("alpha", "alpha_ek", "ba1", "ba2", "sero")
 
+SEQUENCING_DEPTH = 10
+
 mixcr_results <- lapply(groups, function(group) 
-  fread(paste0("data/filtered_bcrtcr_seqs/mixcr_", group, "_seqs.csv"))[, .(CDR3aa, N)])
+  fread(paste0("data/filtered_bcrtcr_seqs/mixcr_", group, "_seqs_", SEQUENCING_DEPTH, ".csv"))[, .(CDR3aa, N)])
 trust_results <- lapply(groups, function(group) 
-  fread(paste0("data/filtered_bcrtcr_seqs/trust_", group, "_seqs.csv"))[, .(CDR3aa, N)])
+  fread(paste0("data/filtered_bcrtcr_seqs/trust_", group, "_seqs_", SEQUENCING_DEPTH, ".csv"))[, .(CDR3aa, N)])
 
 names(mixcr_results) <- groups_short
 names(trust_results) <- groups_short
@@ -32,14 +34,14 @@ num_samples <- c("alpha" = 61, "alpha_ek" = 29, "ba1" = 78, "ba2" = 22, "sero" =
 
 mixcr_results <- lapply(groups_short, function(group){
   mixcr_results[[group]] %>% 
-    #filter(N >= floor(num_samples[group]/2)) %>%
+    filter(N >= floor(num_samples[group]/2)) %>%
     add_column(Group = group) %>%
     add_column(Source = "MIXCR")
 })
 
 trust_results <- lapply(groups_short, function(group){
   trust_results[[group]] %>% 
-    #filter(N >= floor(num_samples[group]/2)) %>%
+    filter(N >= floor(num_samples[group]/2)) %>%
     add_column(Group = group) %>%
     add_column(Source = "TRUST4")
 })
@@ -74,29 +76,23 @@ seqs_all <- rbindlist(lapply(unique(results_all$CDR3aa), function(seq){
 }))
 
 
-# write.csv(seqs_all, "data/filtered_bcrtcr_seqs/CDR3_seqs.csv")
+# write.csv(seqs_all, paste0("data/filtered_bcrtcr_seqs/CDR3_seqs_", SEQUENCING_DEPTH, ".csv"))
 
 ### Distance matrices
 
 # compute distance matrix (use python script) -> reticulate does not work
 # write sequences to file and run with python seperately
 
-# write.csv(seqs_all$CDR3aa, file = "data/filtered_bcrtcr_seqs/all_seqs.csv", row.names = F)
+# write.csv(seqs_all$CDR3aa, file = paste0("data/filtered_bcrtcr_seqs/all_seqs_", SEQUENCING_DEPTH, ".csv", row.names = F))
 
 # run calc_dist_mat.ipynb
 
-dist_mat_all_5 <- as.matrix(read.table("data/filtered_bcrtcr_seqs/matrices/all_seqs_dist_mat_5.csv", sep = " "))
-dist_mat_all_10 <- as.matrix(read.table("data/filtered_bcrtcr_seqs/matrices/all_seqs_dist_mat.csv", sep = " "))
-dist_mat_all_15 <- as.matrix(read.table("data/filtered_bcrtcr_seqs/matrices/all_seqs_dist_mat_15.csv", sep = " "))
+dist_mat_all_10 <- as.matrix(read.table(paste0("data/filtered_bcrtcr_seqs/matrices/all_seqs_",SEQUENCING_DEPTH, "_dist_mat_10.csv"), sep = " "))
 
-seqs_all <- fread("data/filtered_bcrtcr_seqs/CDR3_seqs.csv", header = T)
 
-colnames(dist_mat_all_5) <- seqs_all$CDR3aa
-rownames(dist_mat_all_5) <- seqs_all$CDR3aa
 colnames(dist_mat_all_10) <- seqs_all$CDR3aa
 rownames(dist_mat_all_10) <- seqs_all$CDR3aa
-colnames(dist_mat_all_15) <- seqs_all$CDR3aa
-rownames(dist_mat_all_15) <- seqs_all$CDR3aa
+
 
 ### 1. overlap between MIXCR and TRUST4 results
 
@@ -123,7 +119,7 @@ legend("bottomleft", legend = c(paste0("Sequences found by MiXCR only: ", round(
                                 paste0("Sequences found by TRUST4 only: ", round(num_source["TRUST4"], 2)), 
                                 paste0("Sequences found by MiXCR and TRUST4: ", round(num_source["MIXCR_TRUST4"],2))),
        title = "Percentage of nodes per group:", title.adj = 0.19, bty = "n")
-title(main = "Comparison of BCR and TCR CDR3 sequences reconstructed by MiXCR and TRUST4")
+title(main = "Comparison of BCR and TCR CDR3 sequences reconstructed by MiXCR and TRUST4 (sequencing depth 10 million)")
 
 
 
@@ -136,8 +132,7 @@ title(main = "Comparison of BCR and TCR CDR3 sequences reconstructed by MiXCR an
 seqs_both <- seqs_all[Source == "MIXCR_TRUST4"]$CDR3aa
 seqs_all <- seqs_all[Source == "MIXCR_TRUST4"]
 dist_mat_all_10 <- dist_mat_all_10[seqs_both,seqs_both]
-dist_mat_all_5 <- dist_mat_all_5[seqs_both,seqs_both]
-dist_mat_all_15 <- dist_mat_all_15[seqs_both,seqs_both]
+
 
 ## cutoff 10
 # same graph as above but now different coloring
@@ -158,53 +153,23 @@ V(g)$color <- sapply(seqs_all$variant_only, function(group) colors[group])
 
 
 plot.igraph(g, vertex.size = 6, vertex.label = NA, vertex.label.color = "black", layout = coords_10)
-legend("bottomright", legend = c("Sequence from infected only", "Sequence also in Seronegative"),
+legend("bottomright", legend = c("sequence from infected only", "sequence also in seronegative"),
        fill = c("#8da0cb", "#f7f7f7"), bty = "n")
-legend("bottomleft", legend = c(paste0("Sequences from infected only: ", num_variant_only["true"]),
-                                 paste0("Sequences found also in seronegative: ", num_variant_only["false"])),
+legend("bottomleft", legend = c(paste0("sequences from infected only: ", num_variant_only["true"]),
+                                 paste0("sequences found also in seronegative: ", num_variant_only["false"])),
        title = "Number of nodes per group:",
        title.adj = 0.19, bty = "n")
-title("CDR3 sequences found only in samples with COVID-19 infection")
+title("CDR3 sequences found only in samples with COVID-19 infection (sequencing depth 10 M)")
 
 
 ##  analyze clusters/ connected cmponents
-g5 <- graph_from_adjacency_matrix(dist_mat_all_5, mode = "undirected", weighted = T, diag = F)
-g15 <- graph_from_adjacency_matrix(dist_mat_all_15, mode = "undirected", weighted = T, diag = F)
-
-coords_5 <- layout_nicely(g5)
-coords_15 <- layout_nicely(g15)
-
-
 ccs <- components(g)
-ccs5 <- components(g5)
-ccs15 <- components(g15)
-
 seqs_all[, component_10 := ccs$membership]
-seqs_all[, component_5 := ccs5$membership]
-seqs_all[, component_15 := ccs15$membership]
-
 components_sero10 <- unique(seqs_all[grepl("sero", Groups)]$component_10)
-components_sero5 <- unique(seqs_all[grepl("sero", Groups)]$component_5)
-components_sero15 <- unique(seqs_all[grepl("sero", Groups)]$component_15)
+
 
 
 # Graph coloring components without connection to seronegative
-
-# cutoff 5
-g5 = graph_from_adjacency_matrix(dist_mat_all_5, mode = "undirected", weighted = T, diag = F)
-
-V(g5)$color <- sapply(seqs_all$component_5, function(component) 
-  colors[ifelse(component %in% components_sero5, "false", "true")])
-
-
-plot.igraph(g5, vertex.size = 6, vertex.label = NA, vertex.label.color = "black", layout = coords_5)
-legend("bottomright", legend = c("without connection to seronegative", "with connection to seronegative"),
-       fill = c("#8da0cb", "#f7f7f7"), bty = "n")
-legend("bottomleft", legend = c(paste0("Number of sequences without connection to a seronegative sequence: ", dim(seqs_all[!component_5 %in% components_sero5])[1])),
-       bty = "n")
-title("Connected components with and without sequences found also in seronegatives (cutoff = 5)")
-
-
 # cutoff 10
 g = graph_from_adjacency_matrix(dist_mat_all_10, mode = "undirected", weighted = T, diag = F)
 
@@ -214,54 +179,41 @@ V(g)$color <- sapply(seqs_all$component_10, function(component)
 
 
 plot.igraph(g, vertex.size = 6, vertex.label = NA, vertex.label.color = "black", layout = coords_10)
-legend("bottomright", legend = c("Without connection to seronegative", "With connection to seronegative"),
+legend("bottomright", legend = c("without connection to seronegative", "with connection to seronegative"),
        fill = c("#8da0cb", "#f7f7f7"), bty = "n")
 legend("bottomleft", legend = c(paste0("Number of sequences without connection to a seronegative sequence: ", dim(seqs_all[!component_10 %in% components_sero10])[1])),
        bty = "n")
-title("Connected components with and without sequences found also in seronegatives (cutoff = 10)")
+title("Connected components with and without sequences found also in seronegatives (sequencing depth 50 M)")
 
 # plot with labelled components
 # plot.igraph(g, vertex.size = 6, vertex.label = seqs_all$component_10, vertex.label.color = "black", layout = coords_10)
 # middle cluster == 1
 seqs_alignment_10_middle <- seqs_all[component_10 == 1]$CDR3aa
 
-# cutoff 15
-g15 = graph_from_adjacency_matrix(dist_mat_all_15, mode = "undirected", weighted = T, diag = F)
-
-V(g15)$color <- sapply(seqs_all$component_15, function(component) 
-  colors[ifelse(component %in% components_sero15, "false", "true")])
-
-
-plot.igraph(g15, vertex.size = 6, vertex.label = NA, vertex.label.color = "black", layout = coords_15)
-legend("bottomright", legend = c("without connection to seronegative", "with connection to seronegative"),
-       fill = c("#8da0cb", "#f7f7f7"), bty = "n")
-legend("bottomleft", legend = c(paste0("Number of sequences without connection to a seronegative sequence: ", dim(seqs_all[!component_15 %in% components_sero15])[1])),
-       bty = "n")
-title("Connected components with and without sequences found also in seronegatives (cutoff = 15)")
-
-
-
 # TODO: analyze the following sequences
 
 # sequences that are not connected with a sequence that appears in seronegatives
 seqs_all[!component_10 %in% components_sero10]
-seqs_all[!component_5 %in% components_sero5]
-seqs_all[!component_15 %in% components_sero15]
 
 
 write.fasta(as.list(seqs_all[!component_10 %in% components_sero10]$CDR3aa),
             names = seq(1:length(seqs_all[!component_10 %in% components_sero10]$CDR3aa)),
-            file.out = "data/filtered_bcrtcr_seqs/variant_only_10.fasta",
+            file.out = paste0("data/filtered_bcrtcr_seqs/depth_",SEQUENCING_DEPTH,"_variant_only_10.fasta"),
             as.string = T)
 
-write.fasta(as.list(seqs_all[!component_15 %in% components_sero15]$CDR3aa),
-            names = seq(1:length(seqs_all[!component_15 %in% components_sero15]$CDR3aa)),
-            file.out = "data/filtered_bcrtcr_seqs/variant_only_15.fasta",
-            as.string = T)
+
+
 
 # BLAST analysis (10)
-seqs_with_sarscov2 <- c("CYSTDSSGNHRGVF", "CQSYDSSNVVF", "CETWDSNTRVF", "CQQRSNWPPTWTF")
-seqs_all[, sarscov2 := ifelse(CDR3aa %in% seqs_with_sarscov2, CDR3aa, NA)]
+# seqs_with_sarscov2 <- c("CYSTDSSGNHRGVF", "CQSYDSSNVVF", "CETWDSNTRVF", "CQQRSNWPPTWTF")
+seqs_with_sarscov2_10 <- c("CAAWDDSLNGWVF",
+                           "CAAWDDSLNGPVF",
+                           "CQSADSSGTYVVF",
+                           "CQSYDSSLSGSVF",
+                           "CGTWDSSLSAGVF",
+                           "CLQHNSYPWTF",
+                           "CMQATQFPRTF" )
+seqs_all[, sarscov2 := ifelse(CDR3aa %in% seqs_with_sarscov2_10, CDR3aa, NA)]
 
 
 # 5. MSA of middle cluster testing
@@ -330,9 +282,8 @@ ggseqlogo(unlist(aln_middle)) + labs(title = "Sequence logo for all CDR3 sequenc
 
 ggseqlogo(unlist(aln_middle_15)) + labs(title = "(A) Sequence logo for all CDR3 sequences in the middle cluster")
 
-seqlogo_plot <- ggseqlogo(unlist(aln_non_cc_sero_10)) + labs(title = "Sequence logo for all CDR3 sequences that do not cluster with sequences from seronegative samples")
-seqlogo_plot <- seqlogo_plot +
-  labs(fill = "Chemistry")
+ggseqlogo(unlist(aln_non_cc_sero_10)) + labs(title = "(C) Sequence logo for all CDR3 sequences that do not cluster with sequences from seronegative samples")
+
 
 
 
@@ -355,7 +306,7 @@ V(g)$color <- sapply(seqs_all$group_color1, function(group)
 
 
 plot.igraph(g, vertex.size = 6, vertex.label = seqs_all$sarscov2, vertex.label.color = "black", layout = coords_10)
-legend("bottomright", legend = c("Alpha only", "Alpha+EK only", "BA.1 only", "BA.2 only",  "more than one variant", "with seronegative" ),
+legend("bottomright", legend = c("Alpha only", "Alpha+EK only", "BA.1 only", "BA.2 only",  "More than one variant", "With seronegative" ),
        fill = c("#d73027", "#fc8d59", "#4575b4", "#91bfdb", "#fee090", "transparent"), 
        bty = "n")
 legend("bottomleft", legend = c(paste0("Number of sequences in Alpha only: ", num_groups["alpha"]),
@@ -365,7 +316,7 @@ legend("bottomleft", legend = c(paste0("Number of sequences in Alpha only: ", nu
                                 paste0("Number of sequences in more than one variant: ", num_groups["any_nonsero"]),
                                 paste0("Number of sequences also in Seronegative: ", num_groups["any_sero"])),
        bty = "n")
-title("BCR and TCR sequences in each variant")
+title("BCR and TCR sequences in each variant (sequencing depth 10 M)")
 
 
 
@@ -389,20 +340,20 @@ V(g)$color <- sapply(seqs_all$Groups, function(group)
 
 num_groups <- table(V(g)$color)
 
+# plot.igraph(g, vertex.size = 6, vertex.label = seqs_all$sarscov2, vertex.label.color = "black", layout = coords_10)
 plot.igraph(g, vertex.size = 6, vertex.label = seqs_all$sarscov2, vertex.label.color = "black", layout = coords_10)
-
-legend("bottomright", legend = c("Alpha", "Alpha+EK", "Alpha and Alpha+EK", "BA.1", "BA.2", "BA.1 and BA.2", "any other combination"),
+legend("bottomright", legend = c("Alpha", "Alpha+EK", "Alpha and Alpha+EK", "BA.1", "BA.2", "BA.1 and BA.2", "Any other combination"),
        fill = c("#d73027", "#fee090","#fc8d59","#4575b4", "#e0f3f8", "#91bfdb", "#b8e186"),
        bty = "n")
 legend("bottomleft", legend = c(paste0("Number of sequences in Alpha only: ", num_groups["#d73027"]),
                                 paste0("Number of sequences in Alpha+EK only: ", num_groups["#fee090"]),
                                 paste0("Number of sequences in Alpha and Alpha+EK: ", num_groups["#fc8d59"]),
-                                paste0("Number of sequences in BA.1 only: ", num_groups["#4575b4"]),
+                                paste0("Number of sequences in BA.1 only: 0"),# num_groups["#4575b4"]),
                                 paste0("Number of sequences in BA.2 only: ", num_groups["#e0f3f8"]),
-                                paste0("Number of sequences in BA.1 and BA.2: ", num_groups["#91bfdb"]),
+                                paste0("Number of sequences in BA.1 and BA.2: 0"),# num_groups["#91bfdb"]),
                                 paste0("Number of sequences in any other combination: ", num_groups["#b8e186"])),
        bty = "n")
-title("BCR and TCR sequences in each variant")
+title("BCR and TCR sequences in each variant (sequencing depth 10 million)")
 
 
 

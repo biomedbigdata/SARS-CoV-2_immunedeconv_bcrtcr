@@ -4,12 +4,16 @@
 #   2. adding metadata to results
 
 load(file = "data/variants_omicron_ischgl_tpms_prepared.RData") # load file
-# variants_omicron_ischgl_tpms <- bc_tpms
+#variants_omicron_ischgl_tpms <- tpms_50m
 load(file = "data/nuns_tpms_prepared.RData") # load file
 head(nuns_tpms)
 head(variants_omicron_ischgl_tpms)
 
-
+## set for different tpms matrix
+# variants_omicron_ischgl_tpms <- as.data.frame(tpms_50m)
+# rownames(variants_omicron_ischgl_tpms) <- variants_omicron_ischgl_tpms$gene_name
+# variants_omicron_ischgl_tpms$gene_name <- NULL
+# variants_omicron_ischgl_tpms<- variants_omicron_ischgl_tpms[-1,]
 
 ## perform each of the deconvolution methods 
 # set configurations for cibersort
@@ -164,9 +168,21 @@ full_metadata[startsWith(group, "BA"), day_group := ifelse(num_day <= 5, "<= day
                                                                   ifelse(num_day <= 15, "<= day 15",
                                                                          ifelse(num_day <= 30, "<= day 30",
                                                                                 "> day 30"))))]
+## for m10 & m50
+sero_sra_to_sample <- fread("data/seq_depth_tpms/sero/SraAccList_to_sample.txt")
+colnames(sero_sra_to_sample) <- c("SRA", "old_id")
 
-alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA")]), 
+alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA") | group == "Seronegative"]), 
                                       use.names = T, fill = T)
+#alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA")]), 
+ #                                     use.names = T, fill = T)
+
+alpha_gamma_om_sero_meta <- merge(sero_sra_to_sample, alpha_gamma_om_sero_meta, by = "old_id", all.y = T)
+alpha_gamma_om_sero_meta[is.na(old_id)]$old_id <- alpha_gamma_om_sero_meta[is.na(old_id)]$SRA
+
+alpha_gamma_om_sero_meta<- alpha_gamma_om_sero_meta[!(group=="Seronegative" & is.na(old_id))]
+alpha_gamma_om_sero_meta[group=="Seronegative"]$old_id <- alpha_gamma_om_sero_meta[group=="Seronegative"]$SRA
+
 
 variants_omicron_ischgl_result <- merge(variants_omicron_ischgl_result, alpha_gamma_om_sero_meta,
                                  by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
@@ -176,11 +192,11 @@ nuns_results <- merge(nuns_results, full_metadata, by.x = "sample", by.y = "old_
                       all.x = T, allow.cartesian = T)
 
 # save the results as RData
-# save(variants_omicron_ischgl_result, file = "data/m10_variants_omicron_ischgl_deconv.RData")
+# save(variants_omicron_ischgl_result, file = "data/m50_variants_omicron_ischgl_deconv.RData")
 # save(nuns_results, file = "data/nuns_deconv.RData")
 
 # test loading
-load("data/variants_ischgl_deconv.RData")
+load("data/m10_variants_omicron_ischgl_deconv.RData")
 load("data/nuns_deconv.RData")
 
 
@@ -213,7 +229,8 @@ variants_omicron_ischgl_result[, cv_cell_type := ifelse(startsWith(cell_type, "T
 # exclude samples
 variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!(old_id %in% c("ID43_1st", "ID29_2nd", "ID34_2nd","ID38_1st", "ID38_2nd", "ID38_3rd", "ID53_2nd", "SRR18922948", "SRR18922909", "SRR18922902") |
                                    sample %in% c("Seronegative_ID425_1st", "Seronegative_ID436_1st", "Seronegative_ID446_1st", "Omicron_--_107_1st"))]
-# save(variants_omicron_ischgl_result, file = "data/m10_variants_omicron_ischgl_deconv.RData")
+# variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!is.na(group)]
+# save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
 
 
 # add cv for nuns
@@ -243,3 +260,10 @@ nuns_results[, day_group_2 := ifelse(num_day <= 6, "day [0,1]", # only day 0 for
 # save(nuns_results, file = "data/nuns_deconv_with_cibersortx.RData")
 
 
+### adding seronegative results for all time groups
+sero_results <- variants_omicron_ischgl_result[group == "Seronegative"]
+sero_results[, day_group := "> day 30"]
+
+variants_omicron_ischgl_result <- rbind(variants_omicron_ischgl_result, sero_results)
+
+# save(variants_omicron_ischgl_result, file = "data/m10_variants_omicron_ischgl_deconv_time.RData")
