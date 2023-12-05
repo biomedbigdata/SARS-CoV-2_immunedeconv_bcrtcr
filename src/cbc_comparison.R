@@ -55,6 +55,8 @@ cbc_alpha_full$Sample_ID <- as.numeric(cbc_alpha_full$Sample_ID)
 load("data/variants_omicron_ischgl_deconv.RData")
 deconv_results <- variants_omicron_ischgl_result
 
+deconv_results[(method=="MCPcounter" | method =="mcp_counter") & cell_type == "Monocytic lineage"]$cv_cell_type <- "Monocyte"
+
 cell_types_comp <- c("Neutrophil", "T cell CD4+", "T cell CD8+", "B cell", "Monocyte")
 
 deconv_results <- deconv_results[cv_cell_type %in% cell_types_comp]
@@ -109,17 +111,50 @@ cbc_deconv_melt <- melt(cbc_deconv_melt,
 
 cbc_deconv_melt <- cbc_deconv_melt[(cbc_time_point == "percentage_h" & deconv_time_point == "1st") | (cbc_time_point == "percentage_d" & deconv_time_point == "2nd")]
 
-cbc_deconv_melt[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
+cbc_deconv_melt[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCPcounter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
 
 cbc_deconv_melt$shape <- as.factor(cbc_deconv_melt$group)
-ggplot(cbc_deconv_melt, aes(x = percentage, y = estimate, color = cbc_cell_type)) + 
+ggplot(cbc_deconv_melt[method=="EPIC" & cell_types_comp=="Lymphocyte"], aes(x = percentage, y = estimate, color = cbc_cell_type)) + 
   geom_point() + 
+  ggpubr::stat_cor(show.legend = F, na.rm = T, label.y.npc=c("top","top","top","bottom"), label.x.npc = c("left","left","left","right")) +
   scale_color_brewer(palette = "Dark2") +
   geom_smooth(method = "lm") +
   facet_wrap(~method, scales = "free") +
-  labs(title = "CBC data and deconvolution estimates correlation (sequencing depth 10 million)",
+  labs(title = "CBC data and deconvolution estimates correlation", # (sequencing depth 10 million)",
        x = "CBC percentage", y = "Deconvolution estimate",
        color = "Cell type")
+
+
+
+## compute the RMSE for each method and cell type
+compute_rmse <- function(x, y, zscored = FALSE, weighted = FALSE){
+  if(zscored == TRUE){
+    sd_x = sd(x)
+    sd_y = sd(y)
+    if(sd_x == 0){sd_x = 1}
+    if(sd_y == 0){sd_y = 1}
+    x <- (x - mean(x))/(sd_x)
+    y <- (y - mean(y))/(sd_y)
+  }
+  print(mean((x - y)^2))
+  rmse <- sqrt(mean((x - y)^2, na.rm = T)) 
+  if(weighted == TRUE){rmse <- rmse/max(y)}
+  return(rmse)
+}
+
+rbindlist(lapply(c("EPIC", "quanTIseq", "MCPcounter", "xCell"), function(m){
+  rbindlist(lapply(c("Neutrophil", "Lymphocyte", "Monocyte"), function(c){
+    rmse <- compute_rmse(cbc_deconv_melt[method==m & cbc_cell_type == c]$estimate, cbc_deconv_melt[method==m & cbc_cell_type == c]$percentage)
+    data.table(Method = m, `Cell Type` = c, RMSE = rmse)  
+    }))
+
+}))
+
+
+
+
+
+
 
 
 cor_df <- rbindlist(lapply(c("epic", "mcp_counter", "quantiseq", "xcell"), function(m){

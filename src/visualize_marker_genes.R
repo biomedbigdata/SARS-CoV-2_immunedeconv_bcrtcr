@@ -45,7 +45,7 @@ merged_signatures <- merge(quantiseq_signature, epic_signature, by = "Gene")
 rownames(merged_signatures) <- merged_signatures$Gene
 merged_signatures$Gene <- NULL
 
-heatmap(as.matrix(merged_signatures), na.rm = T, Rowv=F, Colv = F) +
+heatmap(as.matrix(merged_signatures), na.rm = T, Rowv=F, Colv = NA) +
   title(main = "Signatures for EPIC and quanTIseq")
 
 
@@ -163,5 +163,5 @@ mcp_xcell_matrix$Genes <- NULL
 df_numeric <- mcp_xcell_matrix %>%
   mutate_all(as.numeric)
 
-heatmap(as.matrix(df_numeric), na.rm = T, Rowv=F, Colv = F) +
+heatmap(as.matrix(df_numeric), na.rm = T, Rowv=F, Colv = NA) +
   title(main = "Common transcriptomic markers for MCP-counter and xCell")
