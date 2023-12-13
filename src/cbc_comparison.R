@@ -114,7 +114,7 @@ cbc_deconv_melt <- cbc_deconv_melt[(cbc_time_point == "percentage_h" & deconv_ti
 cbc_deconv_melt[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCPcounter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
 
 cbc_deconv_melt$shape <- as.factor(cbc_deconv_melt$group)
-ggplot(cbc_deconv_melt[method=="EPIC" & cell_types_comp=="Lymphocyte"], aes(x = percentage, y = estimate, color = cbc_cell_type)) + 
+ggplot(cbc_deconv_melt, aes(x = percentage, y = estimate, color = cbc_cell_type)) + 
   geom_point() + 
   ggpubr::stat_cor(show.legend = F, na.rm = T, label.y.npc=c("top","top","top","bottom"), label.x.npc = c("left","left","left","right")) +
   scale_color_brewer(palette = "Dark2") +
