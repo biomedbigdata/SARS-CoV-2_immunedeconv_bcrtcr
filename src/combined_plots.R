@@ -7,15 +7,15 @@ library(ggpubr)
 library(cowplot)
 library(RColorBrewer)
 
-load("data/variants_omicron_ischgl_deconv.RData")
-load("data/nuns_deconv.RData")
+load("data/variants_omicron_ischgl_10m_wo_omicron1_deconv.RData")
+# load("data/nuns_deconv.RData")
 # load("data/variants_ischgl_deconv_with_cibersortx.RData")
 # load("data/nuns_deconv_with_cibersortx.RData")
-
+variants_omicron_ischgl_result <- variants_omicron_ischgl_10m_wo_omicron1_result
 
 # new deconv names 
-variants_omicron_ischgl_result[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
-nuns_results[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
+variants_omicron_ischgl_result[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", ifelse(method == "cibersort_abs", "CIBERSORT", method)))))]
+# nuns_results[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
 
 
 
@@ -31,6 +31,8 @@ deconv_methods <- c("quanTIseq", "MCP-counter", "EPIC", "xCell")
 
 # conditional plot variants_ischgl
 conditional_plot_dt <- variants_omicron_ischgl_result[method %in% deconv_methods & !is.na(group)]
+# conditional_plot_dt <- variants_omicron_ischgl_result[num_day < 6]  # filter for first 10 days
+
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
 # conditional_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
@@ -42,14 +44,14 @@ conditional_plot_dt$group <- factor(conditional_plot_dt$group, levels = c("Alpha
 
 conditional_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha+EK", "Seronegative"), c("Gamma", "Seronegative"), c("BA.1", "Seronegative"), c("BA.2", "Seronegative"))
 
-ggplot(conditional_plot_dt[cv_cell_type %in% c("B cell", "Neutrophil", "T cell CD4+", "T cell CD8+")], 
-       aes(x = group, y = value, fill = group)) +
-  geom_boxplot() +
-  facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
-  stat_compare_means(comparisons = conditional_variants_comparisons) +
-  labs(title = "Differences in immune cell abundances between infected and healthy") +
-  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
-  my_theme
+# ggplot(conditional_plot_dt[cv_cell_type %in% c("B cell", "Neutrophil", "T cell CD4+", "T cell CD8+")], 
+#        aes(x = group, y = value, fill = group)) +
+#   geom_boxplot() +
+#   facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
+#   stat_compare_means(comparisons = conditional_variants_comparisons) +
+#   labs(title = "Differences in immune cell abundances between infected and healthy") +
+#   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+#   my_theme
 
 
 
@@ -74,6 +76,7 @@ conditional_figure <- ggarrange(conditional_plots[[1]],
                                 conditional_plots[[2]], 
                                 conditional_plots[[3]], 
                                 conditional_plots[[4]],
+                               #  conditional_plots[[5]],
                     heights = c(1,1,1,1),
                     labels = names(conditional_plots),
                     ncol = 1,
@@ -158,15 +161,18 @@ ggplot(nuns_conditional_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cell
 #   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
 #   my_theme
 
-load("data/variants_omicron_ischgl_deconv_time.RData")
-variants_omicron_ischgl_result[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", method))))]
+load("data/variants_omicron_ischgl_50m_wo_omicron1_deconv_time.RData")
+#load("data/batch_corrected/variants_omicron_ischgl_10m_corrected_deconv_time.RData")
+variants_omicron_ischgl_result <- variants_omicron_ischgl_50m_wo_omicron1_time_result
+
+variants_omicron_ischgl_result[, method := ifelse(method == "quantiseq", "quanTIseq", ifelse(method == "mcp_counter", "MCP-counter", ifelse(method=="xcell", "xCell", ifelse(method == "epic", "EPIC", ifelse(method == "cibersort_abs", "CIBERSORT", method)))))]
 
 # time series variants_ischgl --> exclude Gamma samples, use EPIC and MCPcounter as they are best for time series data and the cell types
 variants_time_plot_dt <- variants_omicron_ischgl_result[method %in% deconv_methods & group != "Gamma" & !is.na(group)]
-variants_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
-variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
-variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
-variants_time_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]# variants_time_plot_dt$day_group <- factor(variants_time_plot_dt$day_group, levels = c("<= day 5", "<= day 10", "<= day 15", "<= day 30", "> day 30" ))
+#variants_time_plot_dt[, cell_type := ifelse(cell_type == "Neutrophils", "Neutrophil", cell_type)]
+#variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+", "T cells", cell_type)]
+#variants_time_plot_dt[, cell_type := ifelse(cell_type == "T cell CD4+ (non-regulatory)", "T cells", cell_type)]
+#variants_time_plot_dt[, cell_type := ifelse(cell_type == "B lineage", "B cell", cell_type)]# variants_time_plot_dt$day_group <- factor(variants_time_plot_dt$day_group, levels = c("<= day 5", "<= day 10", "<= day 15", "<= day 30", "> day 30" ))
 
 variants_time_plot_dt[group == "Alpha_EK"]$group <- "Alpha+EK"
 
@@ -175,6 +181,7 @@ variants_time_plot_dt$group <- factor(variants_time_plot_dt$group, levels = c("A
 colnames(variants_time_plot_dt)[colnames(variants_time_plot_dt) == "group"] <- "Group"
 variants_time_plot_dt[day_group == "> day 30"]$day_group <- "> Day 30"
 variants_time_plot_dt[, day_group := gsub("^day ", "Day ", day_group)]
+variants_time_plot_dt <- variants_time_plot_dt[!is.na(day_group)]
 
 # time_variants_comparisons = list(c("Alpha", "Seronegative"), c("Alpha_EK", "Seronegative"))
 # ggplot(variants_time_plot_dt[cell_type %in% c("Neutrophil", "B cell", "T cells")], 
@@ -198,15 +205,15 @@ variants_time_plot_dt[, day_group := gsub("^day ", "Day ", day_group)]
 
 # day_group on x axis, not as facet
 variants_time_plot_dt[, value := ifelse(method == "MCP-counter", log(value), value)]
-ggplot(variants_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
-       aes(x = factor(day_group, levels = c("day [0,5]", "day [6,10]", "day [11,15]", "day [16,30]", "> day 30")), y = value, color = group)) +
-  geom_boxplot() + 
-  geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
-  facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
-  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
-  labs(title = "Difference in immune cell abundance over time after infection",
-       x = "day_group") +
-  my_theme
+# ggplot(variants_time_plot_dt[cv_cell_type %in% c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+")], 
+#        aes(x = factor(day_group, levels = c("day [0,5]", "day [6,10]", "day [11,15]", "day [16,30]", "> day 30")), y = value, color = group)) +
+#   geom_boxplot() + 
+#   geom_smooth(method = "lm", aes(group=group), alpha = 0.3) +
+#   facet_grid(rows = vars(method), cols = vars(cv_cell_type), scales = "free") +
+#   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) + # TODO: change color
+#   labs(title = "Difference in immune cell abundance over time after infection",
+#        x = "day_group") +
+#   my_theme
 
 
 # variants time plots for each method combined to get free scales
@@ -226,6 +233,7 @@ plots <- lapply(deconv_methods, function(m) {
 figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
                     plots[[2]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
                     plots[[3]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
+                    #plots[[4]] + theme(axis.title.x = element_blank(), axis.text.x = element_blank()), 
                     plots[[4]] + theme(axis.title.x = element_blank()),
                     heights = c(1,1,1,1.7),
                     labels = names(plots),
@@ -234,11 +242,36 @@ figure <- ggarrange(plots[[1]] + theme(axis.title.x = element_blank(), axis.text
                     common.legend = T,
                     legend = "bottom")
 annotate_figure(figure, 
-                top = text_grob("Difference in immune cell abundance over time after infection  (sequencing depth 10 million)", size = 22),
+                top = text_grob("Difference in immune cell abundance over time after infection", size = 22),
                 fig.lab.size = 22, fig.lab.face = "bold")
 
 
-# 
+# linear model to get the p values of the slopes
+slope_p_values <- rbindlist(lapply(deconv_methods, function(m){
+  rbindlist(lapply(c("Neutrophil", "B cell", "T cell CD4+", "T cell CD8+"), function(c){
+    rbindlist(lapply(c("Alpha", "Alpha+EK", "BA.1", "BA.2"), function(v){
+      df <- variants_time_plot_dt[method == m & cv_cell_type == c & Group == v]
+      df <-df %>%
+        mutate(day_group_num = case_when(
+          day_group == "Day [0,5]"    ~ 1,
+          day_group == "Day [6,10]" ~ 2,
+          day_group == "Day [11,15]"      ~ 3,
+          day_group == "Day [16,30]"      ~ 4,
+          day_group == "> Day 30"      ~ 5,
+          TRUE               ~ 0 # Default case if none of the above conditions are met
+        ))
+      linearModel <- lm(day_group_num ~ value, data = df)
+      slopePValue <- summary(linearModel)$coefficients["value", "Pr(>|t|)"]
+      data.table(Method = m, Cell_type = c, Group = v, P.Value = slopePValue)
+    }))
+
+  }))
+}))
+
+p_value_slopes <- dcast(slope_p_values, Method + Cell_type ~ Group)
+# write.csv(p_value_slopes, file = "results/slopes_p_values_m50.csv", row.names = F)
+
+
 
 
 # time series nuns

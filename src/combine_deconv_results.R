@@ -3,16 +3,32 @@
 #   1. computing immunedeconv results and combining results from different methods into one dt
 #   2. adding metadata to results
 
-load(file = "data/variants_omicron_ischgl_tpms_prepared.RData") # load file
-#variants_omicron_ischgl_tpms <- tpms_50m
-load(file = "data/nuns_tpms_prepared.RData") # load file
-head(nuns_tpms)
+
+library(data.table)
+library(ggplot2)
+library(tidyr)
+library(immunedeconv)
+library(tibble)
+library(patchwork)
+library(RColorBrewer)
+
+#load(file = "data/variants_omicron_ischgl_wo_omicron1_tpms.RData") # load file
+load("data/all_tpms_gene_names_7m_wo_omicron1.RData") ### CHANGE HERE !!!
+variants_omicron_ischgl_tpms <- as.data.frame(tpms_7m_wo_omicron1)                 ### CHANGE HERE !!!
+
+load("data/all_tpms_gene_names_50m.RData")
+gene_names <- tpms_50m$gene_name[-1]
+
+#variants_omicron_ischgl_tpms <- variants_omicron_ischgl_tpms[-1,]
+
+#load(file = "data/nuns_tpms_prepared.RData") # load file
+#head(nuns_tpms)
 head(variants_omicron_ischgl_tpms)
 
 ## set for different tpms matrix
-# variants_omicron_ischgl_tpms <- as.data.frame(tpms_50m)
-# rownames(variants_omicron_ischgl_tpms) <- variants_omicron_ischgl_tpms$gene_name
-# variants_omicron_ischgl_tpms$gene_name <- NULL
+#variants_omicron_ischgl_tpms <- as.data.frame(tpms_50m_wo_omicron)
+rownames(variants_omicron_ischgl_tpms) <- gene_names
+variants_omicron_ischgl_tpms$gene_name <- NULL
 # variants_omicron_ischgl_tpms<- variants_omicron_ischgl_tpms[-1,]
 
 ## perform each of the deconvolution methods 
@@ -24,7 +40,7 @@ set_cibersort_mat("src/cibersort/LM22.txt")
 quantiseq_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "quantiseq", tumor = FALSE))
 
 # cibersort_abs
-cibersort_abs_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "cibersort_abs", tumor = FALSE))
+#cibersort_abs_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_tpms, "cibersort_abs", tumor = FALSE))
 
 # mcp_counter
 mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(variants_omicron_ischgl_tpms) # somehow works only this way
@@ -40,7 +56,7 @@ epic_result <- as.data.table(immunedeconv::deconvolute(variants_omicron_ischgl_t
 
 
 quantiseq_result[, method := "quantiseq"]
-cibersort_abs_result[, method := "cibersort_abs"]
+#cibersort_abs_result[, method := "cibersort_abs"]
 mcp_counter_result[, method := "mcp_counter"]
 xcell_result[, method := "xcell"]
 epic_result[, method := "epic"]
@@ -50,48 +66,49 @@ epic_result[, method := "epic"]
 # combine and save results
 variants_omicron_ischgl_result <- rbindlist(list(
   quantiseq_result, 
-  # cibersort_abs_result,
+#  cibersort_abs_result,
   mcp_counter_result,
   xcell_result,
   epic_result
 ), use.names = T)
 
 
+# save(variants_omicron_ischgl_corrected_deconv, file = "data/variants_omicron_ischgl_corrected_deconv.RData")
 
 ## same for nuns
-# quantiseq
-quantiseq_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "quantiseq", tumor = FALSE))
-
-# cibersort_abs
-cibersort_abs_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "cibersort_abs", tumor = FALSE))
-
-# mcp_counter
-mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(nuns_tpms) # somehow works only this way
-cell_types <- rownames(mcp_counter_result)
-mcp_counter_result <- as.data.table(mcp_counter_result)
-mcp_counter_result[, cell_type := cell_types]
-mcp_counter_result <- as.data.table(mcp_counter_result)
-
-# xcell
-xcell_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "xcell", tumor = FALSE))
-
-# epic
-epic_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "epic", tumor = FALSE))
-
-quantiseq_result[, method := "quantiseq"]
-cibersort_abs_result[, method := "cibersort_abs"]
-mcp_counter_result[, method := "mcp_counter"]
-xcell_result[, method := "xcell"]
-epic_result[, method := "epic"]
-
-# combine and save results
-nuns_results <- rbindlist(list(
-  quantiseq_result, 
-  cibersort_abs_result,
-  mcp_counter_result,
-  xcell_result,
-  epic_result
-), use.names = T)
+# # quantiseq
+# quantiseq_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "quantiseq", tumor = FALSE))
+# 
+# # cibersort_abs
+# cibersort_abs_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "cibersort_abs", tumor = FALSE))
+# 
+# # mcp_counter
+# mcp_counter_result <- immunedeconv::deconvolute_mcp_counter(nuns_tpms) # somehow works only this way
+# cell_types <- rownames(mcp_counter_result)
+# mcp_counter_result <- as.data.table(mcp_counter_result)
+# mcp_counter_result[, cell_type := cell_types]
+# mcp_counter_result <- as.data.table(mcp_counter_result)
+# 
+# # xcell
+# xcell_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "xcell", tumor = FALSE))
+# 
+# # epic
+# epic_result <- as.data.table(immunedeconv::deconvolute(nuns_tpms, "epic", tumor = FALSE))
+# 
+# quantiseq_result[, method := "quantiseq"]
+# cibersort_abs_result[, method := "cibersort_abs"]
+# mcp_counter_result[, method := "mcp_counter"]
+# xcell_result[, method := "xcell"]
+# epic_result[, method := "epic"]
+# 
+# # combine and save results
+# nuns_results <- rbindlist(list(
+#   quantiseq_result, 
+#   cibersort_abs_result,
+#   mcp_counter_result,
+#   xcell_result,
+#   epic_result
+# ), use.names = T)
 
 
 
@@ -174,30 +191,32 @@ colnames(sero_sra_to_sample) <- c("SRA", "old_id")
 
 alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA") | group == "Seronegative"]), 
                                       use.names = T, fill = T)
-#alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA")]), 
- #                                     use.names = T, fill = T)
+ # alpha_gamma_om_sero_meta <- rbindlist(list(alpha_gamma_sero_meta, full_metadata[startsWith(group, "BA")]), 
+ #                                      use.names = T, fill = T)
 
 alpha_gamma_om_sero_meta <- merge(sero_sra_to_sample, alpha_gamma_om_sero_meta, by = "old_id", all.y = T)
 alpha_gamma_om_sero_meta[is.na(old_id)]$old_id <- alpha_gamma_om_sero_meta[is.na(old_id)]$SRA
 
 alpha_gamma_om_sero_meta<- alpha_gamma_om_sero_meta[!(group=="Seronegative" & is.na(old_id))]
-alpha_gamma_om_sero_meta[group=="Seronegative"]$old_id <- alpha_gamma_om_sero_meta[group=="Seronegative"]$SRA
+alpha_gamma_om_sero_meta[group=="Seronegative"]$old_id <- alpha_gamma_om_sero_meta[group=="Seronegative"]$sample_id
 
 
 variants_omicron_ischgl_result <- merge(variants_omicron_ischgl_result, alpha_gamma_om_sero_meta,
-                                 by.x = "sample", by.y = "sample_id", all.x = T, allow.cartesian = T)
+                                 by.x = "sample", by.y = "old_id", all.x = T, allow.cartesian = T)
 
 
 nuns_results <- merge(nuns_results, full_metadata, by.x = "sample", by.y = "old_id", 
                       all.x = T, allow.cartesian = T)
 
 # save the results as RData
+
+
 # save(variants_omicron_ischgl_result, file = "data/m50_variants_omicron_ischgl_deconv.RData")
 # save(nuns_results, file = "data/nuns_deconv.RData")
 
 # test loading
-load("data/m10_variants_omicron_ischgl_deconv.RData")
-load("data/nuns_deconv.RData")
+# load("data/m10_variants_omicron_ischgl_deconv.RData")
+# load("data/nuns_deconv.RData")
 
 
 
@@ -217,20 +236,26 @@ variants_omicron_ischgl_result$cell_type <- as.character(variants_omicron_ischgl
 variants_omicron_ischgl_result[, cv_cell_type := ifelse(startsWith(cell_type, "T cell CD4"), "T cell CD4+",
                                                  ifelse(startsWith(cell_type, "T cells CD4"), "T cell CD4+",
                                                  ifelse(cell_type == "T cells", "T cell CD4+",
-                                                 ifelse(startsWith(cell_type, "T cell regulatory"), "T cell CD4+",
-                                                        ifelse(startsWith(cell_type, "T cells regulatory"), "T cell CD4+",
+                                                 ifelse(startsWith(cell_type, "T cell reg"), "T cell CD4+",
+                                                 ifelse(startsWith(cell_type, "T cells reg"), "T cell CD4+",
+                                                 ifelse(startsWith(cell_type, "T cell follicular helper"), "T cell CD4+",
                                                  ifelse(cell_type == "CD8 T cells", "T cell CD8+",
                                                  ifelse(startsWith(cell_type, "T cell CD8"), "T cell CD8+",
                                                         ifelse(startsWith(cell_type, "T cells CD8"), "T cell CD8+",
                                                         ifelse(startsWith(cell_type, "B "), "B cell",
                                                                ifelse(startsWith(cell_type, "Neutro"), "Neutrophil",
-                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type)))))))))))]
+                                                                                 ifelse(startsWith(cell_type, "NK"), "NK cell", cell_type))))))))))))]
 
 # exclude samples
-variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!(old_id %in% c("ID43_1st", "ID29_2nd", "ID34_2nd","ID38_1st", "ID38_2nd", "ID38_3rd", "ID53_2nd", "SRR18922948", "SRR18922909", "SRR18922902") |
-                                   sample %in% c("Seronegative_ID425_1st", "Seronegative_ID436_1st", "Seronegative_ID446_1st", "Omicron_--_107_1st"))]
-# variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!is.na(group)]
-# save(variants_omicron_ischgl_result, file = "data/variants_omicron_ischgl_deconv.RData")
+variants_omicron_ischgl_result <- variants_omicron_ischgl_result[!(sample %in% c("ID43_1st", "ID29_2nd", "ID34_2nd","ID38_1st", "ID38_2nd", "ID38_3rd", "ID53_2nd", "SRR18922948", "SRR18922909", "SRR18922902") |
+                                   sample_id %in% c("Seronegative_ID425_1st", "Seronegative_ID436_1st", "Seronegative_ID446_1st", "Omicron_--_107_1st"))]
+
+## save
+# variants_omicron_ischgl_result <- variants_omicron_ischgl_result[(group != "Seronegative") | (group=="Seronegative" & !is.na(SRA))]
+variants_omicron_ischgl_7m_wo_omicron1_result <- variants_omicron_ischgl_result[group != "Seronegative" | (group=="Seronegative" & day_group == "> day 30")]
+variants_omicron_ischgl_1m_wo_omicron1_result <- variants_omicron_ischgl_result[!is.na(day_group)]
+# save(variants_omicron_ischgl_7m_wo_omicron1_result, file = "data/variants_omicron_ischgl_7m_wo_omicron1_deconv.RData")
+# save(variants_omicron_ischgl_wo_omicron1_corrected_result, file = "data/batch_corrected/variants_omicron_ischgl_wo_omicron1_corrected_deconv.RData")
 
 
 # add cv for nuns
@@ -260,10 +285,21 @@ nuns_results[, day_group_2 := ifelse(num_day <= 6, "day [0,1]", # only day 0 for
 # save(nuns_results, file = "data/nuns_deconv_with_cibersortx.RData")
 
 
+# load(file = "data/batch_corrected/variants_omicron_ischgl_wo_omicron1_corrected_deconv.RData")
+# variants_omicron_ischgl_result <- variants_omicron_ischgl_wo_omicron1_corrected_result
+
+
 ### adding seronegative results for all time groups
+variants_omicron_ischgl_result <- variants_omicron_ischgl_7m_wo_omicron1_result
 sero_results <- variants_omicron_ischgl_result[group == "Seronegative"]
-sero_results[, day_group := "> day 30"]
+sero_results[, day_group := "day [0,5]"]
 
 variants_omicron_ischgl_result <- rbind(variants_omicron_ischgl_result, sero_results)
+# save
+variants_omicron_ischgl_7m_wo_omicron1_time_result <- variants_omicron_ischgl_result
+# save(variants_omicron_ischgl_7m_wo_omicron1_time_result, file = "data/variants_omicron_ischgl_7m_wo_omicron1_deconv_time.RData")
 
-# save(variants_omicron_ischgl_result, file = "data/m10_variants_omicron_ischgl_deconv_time.RData")
+
+#load("data/variants_omicron_ischgl_3m_wo_omicron1_deconv_time.RData")
+
+#load("data/variants_omicron_ischgl_10m_wo_omicron1_deconv.RData")

@@ -22,6 +22,7 @@ library(RColorBrewer)
 ## read gene expression matrix for tpms from rds file
 ## immunedeconv needs only tpms as input
 PATH_TO_DIR <- "/nfs/data2/covid_hennighausen/covid_pbmcs_variants/02_nfcore_rnaseq_results/01_inc_cat/star_salmon/"
+#PATH_TO_DIR <- "data/redo_tpms/"
 
 rds_obj <- readRDS(paste0(PATH_TO_DIR, 'salmon.merged.gene_counts.rds'))
 tpms <- assays(rds_obj)$abundance
